@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="widith-device-width, inital-scale=1.0">
+    <title>Landlord Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <aside class="sidebar">
+        <h2>Rent App</h2>
+        <nav>
+            <a href="#">Dashboard</a>
+            <a href="#">Properties</a>
+            <a href="#">Renters</a>
+        </nav>
+    </aside>
+    <main class="main content">
+        <header class="top-bar">
+            <h1>Landlord Dashboard</h1>
+        </header>
+        <section class="summary cards">
+            <div class="card">
+                <h3>Total Units</h3>
+                <p>24</p>
+            </div>
+            <div class="card">
+                <h3>Occupied Units</h3>
+                <p>18</p>
+            </div>
+            <div class="card">
+                <h3>Rent Collected</h3>
+                <p>UGX 8,500,000</p>
+            </div>
+            <div class="card">
+                <h3>Arrears</h3>
+                <p>UGX 1,200,000</p>
+            </div>
+        </section>
+        <section class="renter-table">
+            <h2>Renters</h2>
+            <table>
+                <tr>
+                    <th>Name</th>
+                    <th>Unit</th>
+                    <th>Status</th>
+                    <form id="renterForm">
+                        <input id="renterName" type="text" placeholder="Renter name">
+                        <input id="renterUnit" type="text" placeholder="Unit">
+                        <button type="submit">Add Renter</button>
+                    </form>
+                    <input id="searchInput" type="text" placeholder="Search renters">
+                    <tbody id="renterTableBody">
+                    </tbody>
+                </tr>
+            </table>
+        </section>
+    </main>
+    <script src="dashboard.js"></script>
+    <p id="totalUnits">24</p>
+    <p id="occupiedUnits">18</p>
+    <p id="rentCollected">UGX 8,500,000</p>
+    <p id="arrears">UGX 1,200,000</p>
+</body>
+
+</html>

@@ -1,0 +1,222 @@
+import { useState } from "react";
+import { useParams } from "react-router-dom";
+import useFetch from "../hooks/useFetch";
+
+const API_URL = "http://localhost:3000";
+
+function PropertyPage() {
+    const [unitNumber, setUnitNumber] = useState("");
+    const [editingUnitId, setEditingUnitId] = useState(null);
+    const [editUnitNumber, setEditUnitNumber] = useState("");
+
+    const { id } = useParams();
+
+    const {
+        data: properties,
+        loading: propertyLoading,
+        error: propertyError
+    } = useFetch("/properties");
+
+    const {
+        data: allUnits,
+        setData: setAllUnits,
+        loading: unitsLoading,
+        error: unitsError
+    } = useFetch("/units");
+
+    const property = properties
+        ? properties.find(function(property) {
+              return property.id === Number(id);
+          })
+        : null;
+
+    const units = allUnits
+        ? allUnits.filter(function(unit) {
+              return unit.propertyId === Number(id);
+          })
+        : [];
+
+    if (propertyLoading || unitsLoading) {
+        return <p>Loading property...</p>;
+    }
+
+    if (propertyError || unitsError) {
+        return <p>Failed to load property.</p>;
+    }
+
+    if (!property) {
+        return <p>Property not found.</p>;
+    }
+
+    function handleAddUnit(event) {
+        event.preventDefault();
+
+        const newUnit = {
+            number: unitNumber,
+            propertyId: Number(id)
+        };
+
+        fetch(`${API_URL}/units`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify(newUnit)
+        })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(savedUnit) {
+                setAllUnits([
+                    ...(allUnits || []),
+                    savedUnit.data
+                ]);
+
+                setUnitNumber("");
+            });
+    }
+
+    function handleUpdateUnit(id) {
+        const updatedUnit = {
+            number: editUnitNumber
+        };
+
+        fetch(`${API_URL}/units/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify(updatedUnit)
+        })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(savedUnit) {
+                const updatedUnits = (allUnits || []).map(
+                    function(unit) {
+                        if (unit.id === id) {
+                            return savedUnit.data;
+                        }
+
+                        return unit;
+                    }
+                );
+
+                setAllUnits(updatedUnits);
+
+                setEditingUnitId(null);
+                setEditUnitNumber("");
+            });
+    }
+
+    function handleDeleteUnit(id) {
+        fetch(`${API_URL}/units/${id}`, {
+            method: "DELETE",
+            credentials: "include"
+        }).then(function() {
+            const remainingUnits = (allUnits || []).filter(
+                function(unit) {
+                    return unit.id !== id;
+                }
+            );
+
+            setAllUnits(remainingUnits);
+        });
+    }
+
+    return (
+        <>
+            <h1>{property.name}</h1>
+
+            <h2>Units</h2>
+
+            <form onSubmit={handleAddUnit}>
+                <label htmlFor="unit-number">
+                    Unit number
+                </label>
+
+                <input
+                    id="unit-number"
+                    type="text"
+                    value={unitNumber}
+                    onChange={function(event) {
+                        setUnitNumber(event.target.value);
+                    }}
+                />
+
+                <button type="submit">
+                    Add Unit
+                </button>
+            </form>
+
+            {units.map(function(unit) {
+                return (
+                    <div key={unit.id}>
+                        {editingUnitId === unit.id ? (
+                            <>
+                                <input
+                                    type="text"
+                                    value={editUnitNumber}
+                                    onChange={function(event) {
+                                        setEditUnitNumber(
+                                            event.target.value
+                                        );
+                                    }}
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={function() {
+                                        handleUpdateUnit(unit.id);
+                                    }}
+                                >
+                                    Update
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={function() {
+                                        setEditingUnitId(null);
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <p>
+                                    Unit {unit.number}
+                                </p>
+
+                                <button
+                                    type="button"
+                                    onClick={function() {
+                                        setEditingUnitId(unit.id);
+                                        setEditUnitNumber(
+                                            unit.number
+                                        );
+                                    }}
+                                >
+                                    Edit
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={function() {
+                                        handleDeleteUnit(unit.id);
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                            </>
+                        )}
+                    </div>
+                );
+            })}
+        </>
+    );
+}
+
+export default PropertyPage;

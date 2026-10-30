@@ -1,0 +1,22 @@
+{
+    "properties": [{
+        "id": 1,
+        "name": "Sunrise Apartments",
+        "location": "Kampala"
+    }, {
+        "id": 2,
+        "name": "Green View Flats",
+        "location": "Entebbe"
+    }],
+    "renters": [{
+        "id": 1,
+        "name": "John",
+        "unit": "A1",
+        "status": "PAID"
+    }, {
+        "id": 2,
+        "name": "Mary",
+        "unit": "A2",
+        "status": "OVERDUE"
+    }]
+}

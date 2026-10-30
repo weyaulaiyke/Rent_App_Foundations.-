@@ -1,0 +1,27 @@
+{
+  "type": "module",
+  "name": "rent-app-foundations",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iseeyou23b4/rent-app-foundations.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/iseeyou23b4/rent-app-foundations/issues"
+  },
+  "homepage": "https://github.com/iseeyou23b4/rent-app-foundations#readme",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "zod": "^4.6.7"
+  }
+}
