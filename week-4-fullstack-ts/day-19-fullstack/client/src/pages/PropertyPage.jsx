@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
 
-const API_URL = "http://localhost:3000";
-
+const API_URL =
+    import.meta.env.VITE_API_URL || "http://localhost:3000";
+    
 function PropertyPage() {
     const [unitNumber, setUnitNumber] = useState("");
     const [editingUnitId, setEditingUnitId] = useState(null);

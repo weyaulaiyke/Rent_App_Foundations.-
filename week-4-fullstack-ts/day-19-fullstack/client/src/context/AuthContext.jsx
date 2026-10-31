@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState} from "react";
 const AuthContext = createContext(null);
 function AuthProvider({children}){
-    console.log("AuthProvider is running");
+    
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(null);
     useEffect(function(){
