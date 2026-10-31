@@ -1,0 +1,106 @@
+{
+  "properties": [
+    {
+      "id": 1,
+      "name": "Sunrise Apartments",
+      "location": "Kampala"
+    },
+    {
+      "id": 2,
+      "name": "Green View Flats",
+      "location": "Entebbe"
+    },
+    {
+      "name": "Lake View Apartments",
+      "location": "Jinja",
+      "id": 3
+    }
+  ],
+  "units": [
+    {
+      "id": 1,
+      "number": "A1",
+      "propertyId": 1
+    },
+    {
+      "id": 2,
+      "number": "A2",
+      "propertyId": 1
+    },
+    {
+      "id": 3,
+      "number": "B1",
+      "propertyId": 2
+    },
+    {
+      "number": "A4",
+      "propertyId": 1,
+      "id": 4
+    },
+    {
+      "number": "d1",
+      "propertyId": 3,
+      "id": 5
+    }
+  ],
+  "renters": [
+    {
+      "id": 1,
+      "name": "John",
+      "unit": "A1",
+      "status": "PAID"
+    },
+    {
+      "id": 2,
+      "name": "Mary",
+      "unit": "A2",
+      "rentDue": 500000,
+      "status": "PAID "
+    },
+    {
+      "name": "Jonasi",
+      "unit": "A3",
+      "status": "PAID",
+      "id": 3
+    },
+    {
+      "name": "Victor",
+      "unit": "A4",
+      "status": "OVERDUE",
+      "rentDue": 500000,
+      "id": 4
+    }
+  ],
+  "payments": [
+    {
+      "id": 1,
+      "renterId": 1,
+      "amount": 500000,
+      "date": "2026-10-17"
+    },
+    {
+      "renterId": 2,
+      "amount": 450000,
+      "date": "2026-10-18",
+      "id": 2
+    },
+    {
+      "renterId": 2,
+      "amount": 500000,
+      "date": "2026-10-20",
+      "id": 3
+    },
+    {
+      "renterId": 4,
+      "amount": 300000,
+      "date": "2026-10-19",
+      "id": 4
+    },
+    {
+      "renterId": 4,
+      "amount": 200000,
+      "date": "2026-10-19",
+      "id": 5
+    }
+  ]
+}
