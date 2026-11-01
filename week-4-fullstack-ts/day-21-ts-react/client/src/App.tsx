@@ -1,19 +1,19 @@
 import { useContext } from "react";
-import AuthContext from "./context/AuthContext.jsx";
-import ProtectedRoute from "./context/ProtectedRoute.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
-import RegisterPage from "./pages/RegisterPage.jsx";
-import ArrearsPage from "./pages/ArrearsPage.jsx";
-import PaymentsPage from "./pages/PaymentsPage.jsx";
+import AuthContext from "./context/AuthContext";
+import ProtectedRoute from "./context/ProtectedRoute";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ArrearsPage from "./pages/ArrearsPage";
+import PaymentsPage from "./pages/PaymentsPage";
 
 import { Routes, Route } from "react-router-dom";
 
-import DashboardPage from "./pages/DashboardPage.jsx";
-import PropertiesPage from "./pages/PropertiesPage.jsx";
-import PropertyPage from "./pages/PropertyPage.jsx";
-import RentersPage from "./pages/RentersPage.jsx";
+import DashboardPage from "./pages/DashboardPage";
+import PropertiesPage from "./pages/PropertiesPage";
+import PropertyPage from "./pages/PropertyPage";
+import RentersPage from "./pages/RentersPage";
 
-import Sidebar from "./components/Sidebar.jsx";
+import Sidebar from "./components/Sidebar";
 
 function App() {
     const auth = useContext(AuthContext);

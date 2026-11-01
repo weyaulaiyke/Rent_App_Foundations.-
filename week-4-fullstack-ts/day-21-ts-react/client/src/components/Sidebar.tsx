@@ -1,14 +1,14 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 function Sidebar(){
     return(
         <aside className="sidebar">
             <h2>Rent App</h2>
             <nav>
-            <Link to="/">Dashboard</Link>
-            <Link to="/properties">Properties</Link>
-            <Link to="/renters">Renters</Link>
-            <Link to="/payments">Payments</Link>
-            <Link to="/arrears">Arrears</Link>
+            <NavLink to="/" end className={({isActive}) =>isActive ? "active" : ""}>Dashboard</NavLink>
+            <NavLink to="/properties" className={({isActive}) => isActive ? "active" : ""}>Properties</NavLink>
+            <NavLink to="/renters" className={({isActive}) => isActive ? "active" : ""}>Renters</NavLink>
+            <NavLink to="/payments" className={({isActive}) => isActive ? "active" : ""}>Payments</NavLink>
+            <NavLink to="/Arrears" className={({isActive}) => isActive ? "active" : ""}>Arrears</NavLink>
             </nav>
         </aside>
     );
