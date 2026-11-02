@@ -339,7 +339,7 @@ function RentersPage() {
                 <p>{actionError}</p>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form className="renters-form" onSubmit={handleSubmit}>
                 <label>Name</label>
 
                 <input
@@ -432,19 +432,17 @@ function RentersPage() {
 
                                 <td>
                                     <button
+                                    className="btn-edit"
                                         onClick={() =>
-                                            handleEdit(renter)
-                                        }
+                                            handleEdit(renter)}
                                     >
                                         Edit
                                     </button>
 
                                     <button
+                                    className="btn-delete"
                                         onClick={() =>
-                                            handleDelete(
-                                                renter.id
-                                            )
-                                        }
+                                            handleDelete(renter.id)}
                                     >
                                         Delete
                                     </button>

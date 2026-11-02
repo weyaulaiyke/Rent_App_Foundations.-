@@ -144,7 +144,7 @@ function PropertyPage() {
 
             <h2>Units</h2>
 
-            <form onSubmit={handleAddUnit}>
+            <form className= "unit-form" onSubmit={handleAddUnit}>
                 <label htmlFor="unit-number">
                     Unit number
                 </label>
@@ -165,7 +165,7 @@ function PropertyPage() {
 
             {units.map(function(unit) {
                 return (
-                    <div key={unit.id}>
+                    <div key={unit.id} className="unit-card">
                         {editingUnitId === unit.id ? (
                             <>
                                 <input
@@ -180,6 +180,7 @@ function PropertyPage() {
 
                                 <button
                                     type="button"
+                                    className="btn-edit"
                                     onClick={function() {
                                         handleUpdateUnit(unit.id);
                                     }}
@@ -189,6 +190,7 @@ function PropertyPage() {
 
                                 <button
                                     type="button"
+                                    className="btn-cancel"
                                     onClick={function() {
                                         setEditingUnitId(null);
                                     }}
@@ -204,6 +206,7 @@ function PropertyPage() {
 
                                 <button
                                     type="button"
+                                    className="btn-edit"
                                     onClick={function() {
                                         setEditingUnitId(unit.id);
                                         setEditUnitNumber(
@@ -216,6 +219,7 @@ function PropertyPage() {
 
                                 <button
                                     type="button"
+                                    className="btn-delete"
                                     onClick={function() {
                                         handleDeleteUnit(unit.id);
                                     }}

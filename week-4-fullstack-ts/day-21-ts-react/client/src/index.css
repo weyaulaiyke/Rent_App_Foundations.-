@@ -52,7 +52,7 @@ body {
 
 .summary-cards {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 20px;
 }
 
@@ -61,7 +61,7 @@ body {
     padding: 24px;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .card h3 {
@@ -79,15 +79,27 @@ body {
 }
 
 table {
-    width: 100;
+    width: 100%;
     border-collapse: collapse;
 }
 
 th,
 td {
-    padding: 12px;
-    border: 1p solid #ccc;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
     text-align: left;
+}
+
+table thead th {
+    background-color: #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+table tbody tr:hover {
+    background-color: #f8fafc;
 }
 
 @media (max-width:600px) {
@@ -100,4 +112,241 @@ td {
     .summary-cards {
         grid-template-columns: 1fr;
     }
+}
+
+input,
+select {
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: white;
+    outline: none;
+}
+
+import:focus,
+select:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+form button[type="submit"] {
+    background-color: #0d9488;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+form button[type="submit"]:hover {
+    background-color: #0f766e;
+}
+
+.btn-edit {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.btn-delete {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.property-card {
+    background-color: white;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.property-card a {
+    color: #16253e;
+    font-size: 20px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.property-card a:hover {
+    color: #0d9488;
+}
+
+.property-card p {
+    color: #64748b;
+    font-size: 14px;
+    margin: 12px 0 20px;
+    line-height: 1.5;
+}
+
+.unit-card {
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.btn-cancel {
+    background-color: #e2e8f0;
+    color: #334155;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.unit-card p {
+    font-size: 18px;
+    font-weight: 600;
+    color: #16253e;
+    margin: 0 0 16px;
+}
+
+.unit-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.unit-form input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.unit-form button[type="submit"] {
+    min-height: 42px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media(max-width: 900px) {
+    #root {
+        flex-direction: column;
+    }
+    .sidebar {
+        width: 100%;
+        padding: 16px;
+    }
+    .sidebar nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .main-content {
+        padding: 20px;
+    }
+}
+
+.renters-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 500px;
+    margin-bottom: 30px;
+}
+
+.renters-form input,
+.renters-form select {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.propert-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 500px;
+    background-color: white;
+    padding: 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+}
+
+.propert-form input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.payment-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-width: 500px;
+    background-color: white;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 24px;
+}
+
+.payments-table {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px(0, 0, 0, 0.05);
+}
+
+.table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.payments-table {
+    min-width: 520px;
+}
+
+.arrears-table {
+    min-width: 760px;
+    background-color: white;
+}
+
+.arrears-amount {
+    color: #b91c1c;
+    font-weight: 700;
+}
+
+.payment-amount {
+    color: #15803d;
+    font-weight: 700;
+}
+
+.total-paid {
+    color: #15803d;
+    font-weight: 700;
+}
+
+.summary-cards .card:nth-child(3) {
+    border-left: 4px solid #15803d
+}
+
+.summary-cards .card:nth-child(4) {
+    border-left: 4px solid #dc2626;
+}
+
+.summary-cards .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-cards .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }

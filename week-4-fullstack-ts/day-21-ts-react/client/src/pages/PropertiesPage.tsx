@@ -112,7 +112,7 @@ function PropertiesPage() {
         <>
             <h1>Properties</h1>
 
-            <form onSubmit={handleAddProperty}>
+            <form className="property-form" onSubmit={handleAddProperty}>
                 <label htmlFor="property-name">
                     Property name
                 </label>
@@ -146,7 +146,7 @@ function PropertiesPage() {
 
             {(properties ??[]).map(function(property) {
                 return (
-                    <div key={property.id}>
+                    <div key={property.id} className="property-card">
                         {editingId === property.id ? (
                             <>
                                 <input
@@ -193,6 +193,7 @@ function PropertiesPage() {
 
                                 <button
                                     type="button"
+                                    className="btn-edit"
                                     onClick={function() {
                                         setEditingId(property.id);
                                         setEditName(property.name);
@@ -203,6 +204,7 @@ function PropertiesPage() {
                                 </button>
                                 <button
                                 type="button"
+                                className="btn-delete"
                                 onClick={function(){
                                     handleDeleteProperty(property.id);
                                 }}>

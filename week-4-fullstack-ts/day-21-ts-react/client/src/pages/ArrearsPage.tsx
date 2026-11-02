@@ -1,17 +1,9 @@
 import useFetch from "../hooks/useFetch";
 
 type ArrearsItem = {
-    renter: {
-        id: number;
-        name: string;
-    };
-    property: {
-        name: string;
-    };
-    unit: {
-        id: number;
-        number: string;
-    };
+    renter: string;
+    property: string;
+    unit: string;
     monthlyRent: number;
     totalPaid: number;
     arrears: number;
@@ -23,6 +15,7 @@ function ArrearsPage() {
         loading,
         error
     } = useFetch<ArrearsItem[]>("/reports/arrears");
+    console.log("Arrears data:", arrears);
 
     if (loading) {
         return <p>Loading arrears...</p>;
@@ -35,8 +28,8 @@ function ArrearsPage() {
     return (
         <>
             <h1>Arrears</h1>
-
-            <table>
+        <div className="table-scroll">
+            <table className="arrears-table">
                 <thead>
                     <tr>
                         <th>Renter</th>
@@ -51,35 +44,36 @@ function ArrearsPage() {
                 <tbody>
                     {(arrears || []).map(function(item) {
                         return (
-                            <tr key={`${item.renter.id}-${item.unit.id}`}>
+                            <tr key={`${item.renter}-${item.property}-${item.unit}`}>
                                 <td>
-                                    {item.renter.name}
+                                    {item.renter}
                                 </td>
 
                                 <td>
-                                    {item.property.name}
+                                    {item.property}
                                 </td>
 
                                 <td>
-                                    {item.unit.number}
+                                    {item.unit}
                                 </td>
 
                                 <td>
                                     UGX {item.monthlyRent}
                                 </td>
 
-                                <td>
-                                    UGX {item.totalPaid}
+                                <td className="total-paid">
+                                    UGX {item.totalPaid.toLocaleString("en-US")}
                                 </td>
 
-                                <td>
-                                    UGX {item.arrears}
+                                <td className="arrears-amount">
+                                    UGX {Number(item.arrears).toLocaleString("en-US")}
                                 </td>
                             </tr>
                         );
                     })}
                 </tbody>
             </table>
+        </div>
         </>
     );
 }

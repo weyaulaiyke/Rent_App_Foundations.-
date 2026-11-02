@@ -99,7 +99,7 @@ function PaymentsPage() {
                 <p>{actionError}</p>
             )}
 
-            <form onSubmit={handleSubmit}>
+            <form className="payment-form" onSubmit={handleSubmit}>
                 <label>Renter</label>
 
                 <select
@@ -154,7 +154,8 @@ function PaymentsPage() {
 
             <h2>Payments</h2>
 
-            <table>
+        <div className="table-scroll">
+            <table className="payments-table">
                 <thead>
                     <tr>
                         <th>Renter</th>
@@ -182,7 +183,7 @@ function PaymentsPage() {
                                         : "Unknown renter"}
                                 </td>
 
-                                <td>
+                                <td className="payment-amount">
                                     UGX {payment.amount}
                                 </td>
 
@@ -194,6 +195,7 @@ function PaymentsPage() {
                     })}
                 </tbody>
             </table>
+        </div>
         </>
     );
 }
