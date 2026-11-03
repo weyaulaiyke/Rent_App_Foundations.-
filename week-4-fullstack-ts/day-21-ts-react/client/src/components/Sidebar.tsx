@@ -1,14 +1,16 @@
 import { Link, NavLink } from "react-router-dom";
+import { LayoutDashboard, Building2, Users, Wallet, AlertCircle, Archive } from "lucide-react";
 function Sidebar(){
     return(
         <aside className="sidebar">
-            <h2>Rent App</h2>
+            <h2 className="sidebar-brand">Rent App</h2>
             <nav>
-            <NavLink to="/" end className={({isActive}) =>isActive ? "active" : ""}>Dashboard</NavLink>
-            <NavLink to="/properties" className={({isActive}) => isActive ? "active" : ""}>Properties</NavLink>
-            <NavLink to="/renters" className={({isActive}) => isActive ? "active" : ""}>Renters</NavLink>
-            <NavLink to="/payments" className={({isActive}) => isActive ? "active" : ""}>Payments</NavLink>
-            <NavLink to="/Arrears" className={({isActive}) => isActive ? "active" : ""}>Arrears</NavLink>
+            <NavLink to="/" className={({isActive}) =>isActive ? "active" : ""}><LayoutDashboard size={18}/>Dashboard</NavLink>
+            <NavLink to="/properties" className={({isActive}) => isActive ? "active" : ""}><Building2 size={18}/>Properties</NavLink>
+            <NavLink to="/renters" end className={({isActive}) => isActive ? "active" : ""}><Users size={18}/>Renters</NavLink>
+            <NavLink to="/renters/archived" className={({isActive}) => isActive ? "active" : ""}><Archive size={18}/>Archived Renters</NavLink>
+            <NavLink to="/payments" className={({isActive}) => isActive ? "active" : ""}><Wallet size={18}/>Payments</NavLink>
+            <NavLink to="/Arrears" className={({isActive}) => isActive ? "active" : ""}><AlertCircle size={18}/>Arrears</NavLink>
             </nav>
         </aside>
     );

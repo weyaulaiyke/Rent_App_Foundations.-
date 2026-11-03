@@ -265,27 +265,6 @@ function RentersPage() {
         setActionError("");
 
         try {
-            const renterLeases = (leases || []).filter(
-                function (lease) {
-                    return lease.renterId === id;
-                }
-            );
-
-        
-            for (const lease of renterLeases) {
-                const leaseResponse = await fetch(
-                    `${API_URL}/leases/${lease.id}`,
-                    {
-                        method: "DELETE",
-                        credentials: "include"
-                    }
-                );
-
-                if (!leaseResponse.ok) {
-                    throw new Error("Could not delete renter lease");
-                }
-            }
-
             const response = await fetch(
                 `${API_URL}/renters/${id}`,
                 {
@@ -295,7 +274,7 @@ function RentersPage() {
             );
 
             if (!response.ok) {
-                throw new Error("Could not delete renter");
+                throw new Error(`Delete failed (${response.status}): :${await response.text}`);
             }
 
             setRenters(
@@ -304,11 +283,6 @@ function RentersPage() {
                 })
             );
 
-            setLeases(
-                (leases || []).filter(function (lease) {
-                    return lease.renterId !== id;
-                })
-            );
         } catch (error) {
             console.error(error);
             setActionError(error instanceof Error ? error.message : "Request failed");
@@ -394,7 +368,7 @@ function RentersPage() {
                 </button>
             </form>
 
-            <table>
+            <table className="renters-table">
                 <thead>
                     <tr>
                         <th>Name</th>
@@ -405,6 +379,12 @@ function RentersPage() {
                 </thead>
 
                 <tbody>
+                {(renters || []).length === 0 && (
+                    <tr>
+                        <td colSpan={4}>No renters added yet.</td>
+                    </tr>
+                )}
+
                     {(renters || []).map(function (renter) {
                         const renterLease =
                             (leases || []).find(
@@ -426,8 +406,8 @@ function RentersPage() {
                                 </td>
 
                                 <td>
-                                    {renterLease?.monthlyRent ||
-                                        "-"}
+                                    {renterLease?.monthlyRent !=null
+                                    ?`UGX ${Number(renterLease.monthlyRent).toLocaleString("en-US")}`:"-"}
                                 </td>
 
                                 <td>
@@ -444,7 +424,7 @@ function RentersPage() {
                                         onClick={() =>
                                             handleDelete(renter.id)}
                                     >
-                                        Delete
+                                        Archive
                                     </button>
                                 </td>
                             </tr>

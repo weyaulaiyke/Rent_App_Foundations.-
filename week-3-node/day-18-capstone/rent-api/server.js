@@ -288,11 +288,26 @@ app.delete("/units/:id", requireAuth, async function(req, res) {
 });
 
 app.get("/renters", requireAuth, async function(req, res) {
-    const renters = await prisma.renter.findMany();
+    const renters = await prisma.renter.findMany({
+        where: {
+            isArchived: false
+        }
+    })
     return res.json({
         data: renters
     })
 })
+
+app.get("/renters/archived", requireAuth, async function(req, res) {
+    const renters = await prisma.renter.findMany({
+        where: {
+            isArchived: true
+        }
+    });
+    return res.json({
+        data: renters
+    });
+});
 
 app.post("/renters", requireAuth, async function(req, res) {
     const { name } = req.body;
@@ -334,8 +349,66 @@ app.patch("/renters/:id", requireAuth, async function(req, res) {
     });
     return res.json({
         data: updatedRenter
+    });
+});
+
+
+app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
+    const renterId = Number(req.params.id);
+
+    const renter = await prisma.renter.findUnique({
+        where: {
+            id: renterId
+        }
+    });
+
+    if (!renter) {
+        return res.status(404).json({
+            error: "Renter not found"
+        });
+    }
+
+    const restoredRenter = await prisma.renter.update({
+        where: {
+            id: renterId
+        },
+        data: {
+            isArchived: false
+        }
+    });
+
+    return res.json({
+        data: restoredRenter
+    });
+});
+
+app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
+    const renterId = Number(req.params.id);
+
+    const renter = await prisma.renter.findUnique({
+        where: {
+            id: renterId
+        }
+    });
+    if (!renter) {
+        return res.status(404).json({
+            error: "Renter not found"
+        });
+    }
+
+    const restoredRenter = await prisma.renter.update({
+        where: {
+            id: renterId
+        },
+        data: {
+            isArchived: false
+        }
+    });
+    return res.json({
+        data: restoredRenter
     })
 })
+
 
 app.delete("/renters/:id", requireAuth, async function(req, res) {
     const renterId = Number(req.params.id);
@@ -349,9 +422,12 @@ app.delete("/renters/:id", requireAuth, async function(req, res) {
             error: "Renter not found"
         });
     }
-    await prisma.renter.delete({
+    await prisma.renter.update({
         where: {
             id: renterId
+        },
+        data: {
+            isArchived: true
         }
     });
     return res.json({

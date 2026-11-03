@@ -58,7 +58,7 @@ function ArrearsPage() {
                                 </td>
 
                                 <td>
-                                    UGX {item.monthlyRent}
+                                    UGX{Number(item.monthlyRent).toLocaleString("en-US")}
                                 </td>
 
                                 <td className="total-paid">

@@ -41,6 +41,7 @@ model Unit {
 model Renter {
   id   Int    @id @default(autoincrement())
   name String
+  isArchived Boolean @default(false)
 
   leases   Lease[]
   payments Payment[]

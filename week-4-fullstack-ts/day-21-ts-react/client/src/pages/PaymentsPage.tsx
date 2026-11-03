@@ -184,7 +184,7 @@ function PaymentsPage() {
                                 </td>
 
                                 <td className="payment-amount">
-                                    UGX {payment.amount}
+                                    UGX {Number(payment.amount).toLocaleString("en-US")}
                                 </td>
 
                                 <td>

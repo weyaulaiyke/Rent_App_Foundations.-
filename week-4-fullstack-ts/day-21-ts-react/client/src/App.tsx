@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ArrearsPage from "./pages/ArrearsPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import ArchivedRentersPage from "./pages/ArchivedRenters";
 
 import { Routes, Route } from "react-router-dom";
 
@@ -41,6 +42,8 @@ const { user } = auth;
                         <RentersPage/>
                     </ProtectedRoute>} 
                     />
+                    <Route path="/renters/archived" element={<ArchivedRentersPage />}
+                     />
                     <Route path="/payments" element={<ProtectedRoute>
                         <PaymentsPage/>
                     </ProtectedRoute>} 
