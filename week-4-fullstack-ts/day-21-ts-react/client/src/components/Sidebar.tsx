@@ -3,7 +3,7 @@ import { LayoutDashboard, Building2, Users, Wallet, AlertCircle, Archive } from 
 function Sidebar(){
     return(
         <aside className="sidebar">
-            <h2 className="sidebar-brand">Rent App</h2>
+            <h2 className="sidebar-brand">REMOTE</h2>
             <nav>
             <NavLink to="/" className={({isActive}) =>isActive ? "active" : ""}><LayoutDashboard size={18}/>Dashboard</NavLink>
             <NavLink to="/properties" className={({isActive}) => isActive ? "active" : ""}><Building2 size={18}/>Properties</NavLink>
