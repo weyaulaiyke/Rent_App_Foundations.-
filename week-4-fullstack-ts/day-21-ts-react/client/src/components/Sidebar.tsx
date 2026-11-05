@@ -1,15 +1,41 @@
+import { useContext } from "react";
+import AuthContext from "../context/AuthContext";
 
-import { NavLink } from "react-router-dom";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Building2,
   Users,
   Wallet,
   AlertCircle,
-  Archive
+  Archive,
+  LogOut
 } from "lucide-react";
 
 function Sidebar() {
+  const auth = useContext(AuthContext);
+  if(!auth) throw new Error("AuthProvider missing");
+
+  const { setUser} = auth;
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try{
+      const response = await fetch(`${API_URL}/auth/logout`,{
+        method: "POST",
+        credentials:"include"
+      });
+      if(!response.ok){
+        throw new Error("Logout failed");
+      }
+      setUser(null);
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
   return (
     <div className="sidebar">
       <div className="sidebar-brand">
@@ -50,6 +76,14 @@ function Sidebar() {
           <AlertCircle size={18} />
           Arrears
         </NavLink>
+        <button
+        type="button"
+        className="logout-button"
+        onClick={handleLogout}
+        >
+          <LogOut size={18}/>
+          Logout
+        </button>
       </nav>
     </div>
   );

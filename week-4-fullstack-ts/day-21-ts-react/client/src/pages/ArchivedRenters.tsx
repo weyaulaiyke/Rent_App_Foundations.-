@@ -1,5 +1,7 @@
 import useFetch from "../hooks/useFetch";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 type ArchivedRenter = {
     id: number;
     name: string;
@@ -16,8 +18,7 @@ function ArchivedRentersPage() {
 
     async function handleRestore(id: number){
         try{
-            const response = await fetch(
-                `http://localhost:3000/renters/${id}/restore`,
+            const response = await fetch(`${API_URL}/renters/${id}/restore`,
                 {
                     method:"PATCH",
                     credentials:"include"

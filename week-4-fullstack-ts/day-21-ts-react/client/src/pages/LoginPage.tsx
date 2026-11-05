@@ -1,7 +1,7 @@
 import { useContext,useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-const API_URL= "http://localhost:3000";
+const API_URL= import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 function LoginPage(){
     const [email, setEmail]= useState("")

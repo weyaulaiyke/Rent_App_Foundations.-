@@ -42,8 +42,11 @@ const { user } = auth;
                         <RentersPage/>
                     </ProtectedRoute>} 
                     />
-                    <Route path="/renters/archived" element={<ArchivedRentersPage />}
-                     />
+                    <Route path="/renters/archived" element={
+                    <ProtectedRoute>
+                        <ArchivedRentersPage />
+                    </ProtectedRoute>
+                } />
                     <Route path="/payments" element={<ProtectedRoute>
                         <PaymentsPage/>
                     </ProtectedRoute>} 

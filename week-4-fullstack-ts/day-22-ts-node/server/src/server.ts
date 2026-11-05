@@ -29,7 +29,7 @@ const prisma = new PrismaClient();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true
 }));
 
@@ -90,7 +90,8 @@ app.post("/auth/login", async function(req, res) {
         process.env.JWT_SECRET, { expiresIn: "1d" })
     res.cookie("token", token, {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
         maxAge: 24 * 60 * 60 * 1000
     })
     return res.json({
@@ -105,7 +106,8 @@ app.post("/auth/login", async function(req, res) {
 app.post("/auth/logout", function(req, res){
     res.clearCookie("token",{
         httpOnly: true,
-        sameSite: "lax"
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
     });
     return res.json({
         message: "Logout successful",
