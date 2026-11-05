@@ -102,6 +102,17 @@ app.post("/auth/login", async function(req, res) {
     });
 });
 
+app.post("/auth/logout", function(req, res){
+    res.clearCookie("token",{
+        httpOnly: true,
+        sameSite: "lax"
+    });
+    return res.json({
+        message: "Logout successful",
+        
+    })
+})
+
 app.get("/auth/me", requireAuth, async function(req, res) {
     const userId = req.userId;
     if (userId === undefined){
@@ -361,9 +372,17 @@ app.delete("/units/:id", requireAuth, async function(req, res) {
 });
 
 app.get("/renters", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const renters = await prisma.renter.findMany({
         where: {
-            isArchived: false
+            isArchived: false,
+            userId: userId
         }
     })
     return res.json({
@@ -372,9 +391,17 @@ app.get("/renters", requireAuth, async function(req, res) {
 })
 
 app.get("/renters/archived", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const renters = await prisma.renter.findMany({
         where: {
-            isArchived: true
+            isArchived: true,
+            userId: userId
         }
     });
     return res.json({
@@ -383,6 +410,13 @@ app.get("/renters/archived", requireAuth, async function(req, res) {
 });
 
 app.post("/renters", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const result = renterSchema.safeParse(req.body);
 
     if (!result.success) {
@@ -398,7 +432,8 @@ app.post("/renters", requireAuth, async function(req, res) {
     }
     const renter = await prisma.renter.create({
         data: {
-            name: name
+            name: name,
+            userId: userId
         }
     });
     return res.status(201).json({
@@ -407,11 +442,19 @@ app.post("/renters", requireAuth, async function(req, res) {
 });
 
 app.patch("/renters/:id", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const renterId = Number(req.params.id);
     const { name } = req.body;
     const renter = await prisma.renter.findUnique({
         where: {
-            id: renterId
+            id: renterId,
+            userId: userId
         }
     });
     if (!renter) {
@@ -434,11 +477,19 @@ app.patch("/renters/:id", requireAuth, async function(req, res) {
 
 
 app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const renterId = Number(req.params.id);
 
     const renter = await prisma.renter.findUnique({
         where: {
-            id: renterId
+            id: renterId,
+            userId: userId
         }
     });
 
@@ -450,7 +501,8 @@ app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
 
     const restoredRenter = await prisma.renter.update({
         where: {
-            id: renterId
+            id: renterId,
+            userId: userId
         },
         data: {
             isArchived: false
@@ -462,39 +514,19 @@ app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
     });
 });
 
-app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
-    const renterId = Number(req.params.id);
-
-    const renter = await prisma.renter.findUnique({
-        where: {
-            id: renterId
-        }
-    });
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        });
-    }
-
-    const restoredRenter = await prisma.renter.update({
-        where: {
-            id: renterId
-        },
-        data: {
-            isArchived: false
-        }
-    });
-    return res.json({
-        data: restoredRenter
-    })
-})
-
-
 app.delete("/renters/:id", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const renterId = Number(req.params.id);
     const renter = await prisma.renter.findUnique({
         where: {
-            id: renterId
+            id: renterId,
+            userId: userId
         }
     });
     if (!renter) {
@@ -518,12 +550,26 @@ app.delete("/renters/:id", requireAuth, async function(req, res) {
 });
 
 app.get("/leases", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const leases = await prisma.lease.findMany({
+        where: {
+            unit: {
+                property: {
+                    userId: userId
+                }
+            }
+        },
         include: {
             renter: true,
             unit: {
                 include: {
-                    property: true
+                    property: true,
                 }
             }
         }
@@ -561,7 +607,8 @@ app.post("/leases", requireAuth, async function(req, res) {
     }
     const renter = await prisma.renter.findUnique({
         where: {
-            id: Number(renterId)
+            id: Number(renterId),
+            userId: userId
         }
     });
     if (!renter) {
@@ -654,7 +701,19 @@ app.delete("/leases/:id", requireAuth, async function(req, res) {
 });
 
 app.get("/payments", requireAuth, async function(req, res) {
+    const userId = req.userId;
+
+if (userId === undefined) {
+    return res.status(401).json({
+        error: "Not authenticated"
+    });
+}
     const payments = await prisma.payment.findMany({
+        where: {
+            renter: {
+                userId: userId
+            }
+        },
         include: {
             renter: true
         }
@@ -681,6 +740,7 @@ if (userId === undefined) {
     const renter = await prisma.renter.findFirst({
         where: {
             id: Number(renterId),
+            userId: userId,
             leases: {
                 some: {
                     unit: {
@@ -723,6 +783,7 @@ app.patch("/payments/:id", requireAuth, async function(req, res) {
         where: {
             id: paymentId,
             renter: {
+                userId:userId,
                 leases: {
                     some: {
                         unit: {
@@ -775,6 +836,7 @@ app.delete("/payments/:id", requireAuth, async function(req, res) {
         where: {
             id: paymentId,
             renter: {
+                userId: userId,
                 leases: {
                     some: {
                         unit: {
