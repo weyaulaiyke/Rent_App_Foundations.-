@@ -247,62 +247,46 @@ app.delete("/properties/:id", requireAuth, async function(req, res) {
     });
 });
 
-app.get("/units", requireAuth, async function(req, res) {
+app.get("/maintenance", requireAuth, async function(req, res) {
     const userId = req.userId;
     if(userId === undefined){
         return res.status(401).json({
             error:"Not aunthenticated"
         });
     }
-    const units = await prisma.unit.findMany({
+    const requests = await prisma.maintenance.findMany({
         where: {
+            unit:{
             property: {
                 userId: userId
             }
-        },
+        } 
+    },
         include: {
-            property: true
+            unit:{ 
+                include:{
+                    property: true
+                }
+            }
         }
     });
     return res.json({
-        data: units
+        data: requests
     });
 });
 
-app.post("/units", requireAuth, async function(req, res) {
-    const userId= req.userId;
+app.post("/maintenance", requireAuth, async function(req, res) {
+    const userId = req.userId;
 
-    if(userId === undefined){
+    if (userId === undefined) {
         return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const { number, propertyId } = req.body;
-    if (!number || !propertyId) {
-        return res.status(400).json({
-            error: "Unit number and propertyId are required"
+            error: "Not authenticated"
         });
     }
-    const property = await prisma.property.findFirst({
-        where: {
-            id: Number(propertyId),
-            userId: userId
-        }
+
+    return res.status(501).json({
+        error: "Maintenance creation not implemented yet"
     });
-    if (!property) {
-        return res.status(404).json({
-            error: "Property not found"
-        })
-    }
-    const unit = await prisma.unit.create({
-        data: {
-            number: number,
-            propertyId: Number(propertyId)
-        }
-    });
-    return res.status(201).json({
-        data: unit
-    })
 });
 
 app.patch("/units/:id", requireAuth, async function(req, res) {
@@ -904,6 +888,7 @@ if (userId === undefined) {
                     return total + payment.amount;
                 }, 0);
             return {
+                renterId: lease.renter.id,
                 renter: lease.renter.name,
                 property: lease.unit.property.name,
                 unit: lease.unit.number,

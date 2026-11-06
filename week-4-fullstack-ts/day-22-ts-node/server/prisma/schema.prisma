@@ -18,7 +18,7 @@ model User {
   email        String     @unique
   passwordHash String
   properties   Property[]
-  renters Renter[]
+  renters      Renter[]
 }
 
 model Property {
@@ -35,20 +35,21 @@ model Unit {
   number     String
   propertyId Int
 
-  property Property @relation(fields: [propertyId], references: [id])
-  leases   Lease[]
+  property            Property      @relation(fields: [propertyId], references: [id])
+  leases              Lease[]
+  maintenanceRequests maintenance[]
 }
 
 model Renter {
-  id   Int    @id @default(autoincrement())
-  name String
+  id         Int     @id @default(autoincrement())
+  name       String
   isArchived Boolean @default(false)
 
   leases   Lease[]
   payments Payment[]
 
-   userId Int
-   user User @relation(fields: [userId], references: [id])
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
 }
 
 model Lease {
@@ -68,4 +69,15 @@ model Payment {
   paymentDate DateTime
 
   renter Renter @relation(fields: [renterId], references: [id])
+}
+
+model maintenance {
+  id          Int      @id @default(autoincrement())
+  unitId      Int
+  title       String
+  description String
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+
+  unit Unit @relation(fields: [unitId], references: [id])
 }
