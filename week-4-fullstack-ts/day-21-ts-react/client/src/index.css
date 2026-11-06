@@ -11,7 +11,7 @@ body {
 .sidebar {
     width: 220px;
     padding: 16px 12px;
-    background-color: linear-gradient(180deg, #103e37, #123c35);
+    background: linear-gradient(180deg, #103e37, #123c35);
     color: #ffffff;
     box-sizing: border-box;
     flex-shrink: 0;
