@@ -57,6 +57,7 @@ const { user } = auth;
                     />
                     <Route path="/register" element={<RegisterPage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
+                    <Route path="*" element={<p>Page not found</p>}/>
                 </Routes>
             </main>
         </>

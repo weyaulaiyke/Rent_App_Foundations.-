@@ -4,7 +4,7 @@ import AuthContext from "./AuthContext";
 
 function ProtectedRoute({children}: {children: ReactNode}){
    const auth = useContext(AuthContext);
-   if(!auth) throw new Error("AuthProvider misssing");
+   if(!auth) throw new Error("AuthProvider missing");
    const {user, loading} = auth;
     if(loading){
         return <p>Checking login...</p>

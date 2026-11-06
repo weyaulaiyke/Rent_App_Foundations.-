@@ -77,6 +77,9 @@ function PropertyPage() {
             body: JSON.stringify(newUnit)
         })
             .then(function(response) {
+                if(!response.ok){
+                    throw new Error("Could not add unit")
+                }
                 return response.json();
             })
             .then(function(savedUnit) {
@@ -84,10 +87,12 @@ function PropertyPage() {
                     ...(allUnits || []),
                     savedUnit.data
                 ]);
-
                 setUnitNumber("");
+            }).catch(function(error){
+                console.error(error);
+                alert("Could not add unit")
             });
-    }
+            }
 
     function handleUpdateUnit(id: number) {
         const updatedUnit = {
@@ -103,6 +108,9 @@ function PropertyPage() {
             body: JSON.stringify(updatedUnit)
         })
             .then(function(response) {
+                if(!response.ok){
+                    throw new Error("Could not update unit");
+                }
                 return response.json();
             })
             .then(function(savedUnit) {
@@ -111,7 +119,6 @@ function PropertyPage() {
                         if (unit.id === id) {
                             return savedUnit.data;
                         }
-
                         return unit;
                     }
                 );
@@ -120,6 +127,9 @@ function PropertyPage() {
 
                 setEditingUnitId(null);
                 setEditUnitNumber("");
+            }).catch(function(error){
+                console.error(error);
+                alert("Could not update unit");
             });
     }
 
@@ -127,7 +137,10 @@ function PropertyPage() {
         fetch(`${API_URL}/units/${id}`, {
             method: "DELETE",
             credentials: "include"
-        }).then(function() {
+        }).then(function(response) {
+            if(!response.ok){
+                throw new Error("Could not delete unit")
+            }
             const remainingUnits = (allUnits || []).filter(
                 function(unit) {
                     return unit.id !== id;
@@ -135,6 +148,9 @@ function PropertyPage() {
             );
 
             setAllUnits(remainingUnits);
+        }).catch(function(error){
+            console.error(error);
+            alert("Could not delete unit");
         });
     }
 
