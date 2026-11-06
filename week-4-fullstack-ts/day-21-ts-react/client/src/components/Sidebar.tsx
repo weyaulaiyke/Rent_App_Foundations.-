@@ -72,7 +72,7 @@ function Sidebar() {
           Payments
         </NavLink>
 
-        <NavLink to="/Arrears" className={({ isActive }) => isActive ? "active" : ""}>
+        <NavLink to="/arrears" className={({ isActive }) => isActive ? "active" : ""}>
           <AlertCircle size={18} />
           Arrears
         </NavLink>
