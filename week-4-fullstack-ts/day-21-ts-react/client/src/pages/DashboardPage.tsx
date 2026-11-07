@@ -27,6 +27,11 @@ type ArrearsItem = {
     arrears: number;
 };
 
+type Maintenance = {
+    id: number;
+    status: string;
+};
+
 function DashboardPage() {
     const {
         data: renters,
@@ -64,11 +69,20 @@ function DashboardPage() {
         error: arrearsError
     } = useFetch<ArrearsItem[]>("/reports/arrears");
 
+    const {
+        data: maintenance,
+        loading: maintenanceLoading,
+        error: maintenanceError
+    } = useFetch<Maintenance[]>("/maintenance");
+
     if (
         rentersLoading ||
         propertiesLoading ||
         leasesLoading ||
-        arrearsLoading
+        arrearsLoading ||
+        unitsLoading ||
+        paymentsLoading ||
+        maintenanceLoading
     ) {
         return <p>Loading dashboard...</p>;
     }
@@ -77,7 +91,10 @@ function DashboardPage() {
         rentersError ||
         propertiesError ||
         leasesError ||
-        arrearsError
+        arrearsError||
+        unitsError||
+        paymentsError||
+        maintenanceError
     ) {
         return <p>Failed to load dashboard.</p>;
     }
@@ -93,13 +110,6 @@ function DashboardPage() {
             return lease.renterId;
         })
     );
-
-    const paidRenters = (renters || []).filter(function(renter) {
-        return (
-            leasedRenterIds.has(renter.id) &&
-            !arrearsRenterIds.has(renter.id)
-        );
-    });
 
     const potentialRent = (leases || []).reduce(
         function(total, lease){
@@ -119,6 +129,10 @@ function DashboardPage() {
             paymentDate.getMonth() === today.getMonth() && paymentDate.getFullYear() === today.getFullYear()
         );
     });
+
+    const openMaintenance = (maintenance || []).filter(
+        (request) => request.status !== "RESOLVED"
+    ).length;
 
     const collectedThisMonth = monthlyPayments.reduce(
         function(total, payment){
@@ -161,8 +175,8 @@ function DashboardPage() {
                 />
 
                 <SummaryCard
-                    title="Paid"
-                    value={paidRenters.length}
+                    title="Open Maintenance"
+                    value={openMaintenance}
                 />
 
                 <SummaryCard

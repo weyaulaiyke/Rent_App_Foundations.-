@@ -93,7 +93,7 @@ function Sidebar() {
     },
     {
       label: "Maintenance",
-      path: null,
+      path: "/maintenance",
       icon: <Wrench size={17} />
     },
     {

@@ -6,6 +6,7 @@ import { z } from "zod";
 import express = require("express");
 const cookieParser = require("cookie-parser")
 import PrismaPackage = require("@prisma/client")
+import { error } from "console";
 const { PrismaClient } = PrismaPackage;
 require("dotenv").config();
 
@@ -247,6 +248,76 @@ app.delete("/properties/:id", requireAuth, async function(req, res) {
     });
 });
 
+app.get("/units", requireAuth, async function(req, res){
+    const userId = req.userId;
+
+    if(userId === undefined){
+        return res.status(401).json({
+            error: "Not authenticated"
+        });
+    }
+
+    const units = await prisma.unit.findMany({
+        where: {
+            property: {
+                userId: userId
+            }
+        },
+        include: {
+            property: true
+        }
+    });
+    return res.json({
+        data: units
+    })
+})
+
+app.post("/units", requireAuth, async function(req, res){
+    const userId = req.userId;
+
+    if (userId === undefined){
+        return res.status(401).json({
+            error: "Not authenticated"
+        });
+    }
+    const { number, propertyId } = req.body;
+    const parsedPropertyId = Number(propertyId);
+
+    if(
+        typeof number !== "string" ||
+        !number.trim() ||
+        !Number.isInteger(parsedPropertyId) ||
+        parsedPropertyId <= 0
+    ){
+        return res.status(400).json({
+            error: "Valid unit number and propertyId are required"
+        });
+    }
+
+    const property = await prisma.property.findFirst({
+        where: {
+            id: parsedPropertyId,
+            userId: userId
+        }
+    });
+
+    if (!property){
+        return res.status(404).json({
+            error: "Property not found"
+        });
+    }
+
+    const unit = await prisma.unit.create({
+        data:{
+            number: number.trim(),
+            propertyId: parsedPropertyId
+        }
+    });
+    return res.status(201).json({
+        data: unit
+    })
+});
+
 app.get("/maintenance", requireAuth, async function(req, res) {
     const userId = req.userId;
     if(userId === undefined){
@@ -284,8 +355,46 @@ app.post("/maintenance", requireAuth, async function(req, res) {
         });
     }
 
-    return res.status(501).json({
-        error: "Maintenance creation not implemented yet"
+    const { unitId, title, description } = req.body ?? {};
+
+    if (
+        !Number.isInteger(unitId) || 
+        unitId <= 0 ||
+        typeof title !== "string" || 
+        !title.trim() || 
+        typeof description !== "string" ||
+        !description.trim()
+    ) {
+        return res.status(400).json({
+            error:"Valid unitId, title and description are required"
+        });
+    }
+
+    const unit = await prisma.unit.findFirst({
+        where: {
+            id: unitId,
+            property: {
+                userId: userId
+            }
+        }
+    });
+
+    if (!unit){
+        return res.status(404).json({
+            error: "Unit not found"
+        });
+    }
+
+    const request = await prisma.maintenance.create({
+        data: {
+            unitId: unitId,
+            title: title.trim(),
+            description: description.trim()
+        }
+    });
+
+    return res.status(201).json({
+        data: request
     });
 });
 
