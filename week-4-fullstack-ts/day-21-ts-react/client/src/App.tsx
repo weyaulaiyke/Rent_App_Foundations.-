@@ -6,7 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ArrearsPage from "./pages/ArrearsPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import ArchivedRentersPage from "./pages/ArchivedRenters";
-import MaintenancePage from "./pages/maintenancePage";
+import MaintenancePage from "./pages/MaintenancePage";
 
 import { Routes, Route } from "react-router-dom";
 

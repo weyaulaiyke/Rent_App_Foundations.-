@@ -398,6 +398,70 @@ app.post("/maintenance", requireAuth, async function(req, res) {
     });
 });
 
+app.patch("/maintenance/:id", requireAuth, async function(req, res){
+    const userId = req.userId;
+
+    if(userId === undefined){
+        return res.status(401).json({
+            error: "Not authenticated"
+        })
+    }
+
+    const requestId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(requestId) || requestId <= 0){
+        return res.status(400).json({
+            error:"Invalid maintenance request ID"
+        });
+    }
+
+    const result = z 
+    .enum(["OPEN", "IN_PROGRESS", "COMPLETED"])
+    .safeParse(req.body?.status);
+
+    if (!result.success) {
+        return res.status(400).json({
+            error:"Status must be OPEN, IN_PROGRESS or COMPLETED"
+        });
+    }
+
+    const status = result.data
+
+    try{
+        const updated = await prisma.maintenance.updateMany({
+            where: {
+                id: requestId,
+                unit :{
+                    property:{
+                        userId: userId
+                    }
+                }
+            },
+            data: {
+                status: status
+            }
+        });
+
+        if(updated.count === 0 ){
+            return res.status(404).json({
+                error: "Maintenance request not found"
+            })
+        }
+        return res.json({
+            data: {
+                id: requestId,
+                status: status
+            }
+        });
+    } catch (error) {
+        console.error(error);
+
+        return res.status(404).json({
+            error: "Could not update maintenance status"
+        });
+    }
+})
+
 app.patch("/units/:id", requireAuth, async function(req, res) {
     const userId = req.userId
     if(userId === undefined){

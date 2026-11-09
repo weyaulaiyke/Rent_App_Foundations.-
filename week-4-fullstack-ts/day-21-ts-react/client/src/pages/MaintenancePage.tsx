@@ -41,9 +41,11 @@ function MaintenancePage() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState("");
     const [message, setMessage] = useState("");
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
+    const [statusError, setStatusError] = useState("")
 
     async function handleSubmit() {
-        if (saving) return;
+        if (saving || updatingId !== null) return;
 
         if (!unitId || !title.trim() || !description.trim()) {
             setSaveError("Select a unit and complete all fields.");
@@ -115,6 +117,45 @@ function MaintenancePage() {
         }
     }
 
+    async function updateStatus(id: number, status: string){
+        if(updatingId !== null || saving) return;
+
+        setUpdatingId(id);
+        setStatusError("");
+
+        try{
+            const response = await fetch (`${API_URL}/maintenance/${id}`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ status })
+            });
+
+            if (!response.ok) {
+                throw new Error(
+                    `Could not update status (${response.status}).`
+                );
+            }
+            setRequests(function(current) {
+                return current?.map(function(request) {
+                    return request.id === id
+                    ? {...request, status: status }
+                    : request;
+                }) ?? null;
+            });
+    } catch (error: unknown) {
+        setStatusError(
+            error instanceof Error
+            ? error.message
+            : "Could not update status."
+        );
+    } finally{
+        setUpdatingId(null);
+    }
+}
+
     return (
         <div>
             <h1 className="dashbord-heading">Maintenance</h1>
@@ -179,6 +220,7 @@ function MaintenancePage() {
                     type="submit"
                     disabled={
                         saving ||
+                        updatingId !== null || 
                         unitsLoading ||
                         Boolean(unitsError) ||
                         !units?.length
@@ -195,7 +237,11 @@ function MaintenancePage() {
             {error && (
                 <p role="alert">Failed to load maintenance requests.</p>
             )}
+        {statusError && <p role="alert">{statusError}</p>}
 
+        {updatingId !== null && (
+            <p role = "status">Updating status...</p>
+        )}
             <table>
                 <thead>
                     <tr>
@@ -214,7 +260,20 @@ function MaintenancePage() {
                                 <td>{request.unit.number}</td>
                                 <td>{request.title}</td>
                                 <td>{request.description}</td>
-                                <td>{request.status}</td>
+                                <td>
+                                    <select
+                                aria-label={`Status for ${request.title}`}
+                                value={request.status}
+                                disabled={updatingId !== null || saving}
+                                onChange={(event) => {
+                                    void updateStatus(request.id, event.target.value);
+                                }}
+                                >
+                                    <option value="OPEN">Open</option>
+                                    <option value="IN_PROGRESS">In progress</option>
+                                    <option value="COMPLETED">Completed</option>
+                                    </select>
+                                </td>
                                 <td>
                                     {new Date(
                                         request.createdAt
