@@ -8,7 +8,7 @@ import PaymentsPage from "./pages/PaymentsPage";
 import ArchivedRentersPage from "./pages/ArchivedRenters";
 import MaintenancePage from "./pages/MaintenancePage";
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 
 import DashboardPage from "./pages/DashboardPage";
 import PropertiesPage from "./pages/PropertiesPage";
@@ -18,6 +18,8 @@ import RentersPage from "./pages/RentersPage";
 import Sidebar from "./components/Sidebar";
 
 function App() {
+    const { pathname } = useLocation();
+    const isAuthPage = pathname === "/login" || pathname === "/register";
     const auth = useContext(AuthContext);
 if (!auth) throw new Error("AuthProvider missing");
 const { user } = auth;
@@ -25,7 +27,12 @@ const { user } = auth;
         <>
             {user && <Sidebar />}
 
-            <main className="main-content">
+            <main 
+                className={
+                    isAuthPage
+                        ? "main-content main-content--auth"
+                        : "main-content"
+                }>
                 <Routes>
                     <Route path="/" element={<ProtectedRoute>
                         <DashboardPage/>
