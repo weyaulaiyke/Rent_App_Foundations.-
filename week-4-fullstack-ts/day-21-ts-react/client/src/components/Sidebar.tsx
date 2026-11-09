@@ -121,17 +121,15 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <img
-          src="/REMOTE-logo.jpg"
-          alt="REMOTE logo"
-          className="remote-logo"
-        />
+    <span className="remote-brand-mark" aria-hidden="true">
+        R
+    </span>
 
-        <div>
-          <h2>REMOTE</h2>
-          <p>Property Management</p>
-        </div>
-      </div>
+    <div>
+        <h2>REMOTE</h2>
+        <p>Property Management</p>
+    </div>
+</div>
 
       <nav aria-label="Main navigation">
         {menuItems.map(function(item) {

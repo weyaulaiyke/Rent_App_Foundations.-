@@ -308,3 +308,8 @@
         transition: none;
     }
 }
+
+.remote-auth-page .remote-auth-brand-mark {
+    font-size: 26px;
+    font-weight: 900;
+}
