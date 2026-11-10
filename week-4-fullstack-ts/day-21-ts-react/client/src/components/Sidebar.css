@@ -1,0 +1,286 @@
+.sidebar.collapsible-sidebar * {
+    box-sizing: border-box;
+}
+
+.sidebar.collapsible-sidebar {
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 222px;
+    width: 222px;
+    min-width: 0;
+    height: 100vh;
+    height: 100dvh;
+    padding: 18px 12px 14px;
+    overflow: visible;
+    transition: width 180ms ease, flex-basis 180ms ease;
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed {
+    flex-basis: 72px;
+    width: 72px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-brand {
+    flex-shrink: 0;
+    gap: 8px;
+    padding: 2px 0 16px;
+}
+
+.sidebar.collapsible-sidebar .remote-brand-mark {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #153f37;
+    color: #c5a35c;
+    font-family: Arial, sans-serif;
+    font-size: 23px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.sidebar.collapsible-sidebar .sidebar-brand-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar.collapsible-sidebar .sidebar-brand-details h2 {
+    font-size: 15px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-brand-details p {
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+.sidebar.collapsible-sidebar .sidebar-toggle {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    min-width: 0;
+    height: 32px;
+    margin: 0;
+    padding: 6px;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2eee9;
+    cursor: pointer;
+}
+
+.sidebar.collapsible-sidebar .sidebar-toggle svg {
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.sidebar.collapsible-sidebar nav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.sidebar.collapsible-sidebar nav a,
+.sidebar.collapsible-sidebar nav .sidebar-pending {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-label {
+    min-width: 0;
+}
+
+.sidebar.collapsible-sidebar nav .sidebar-pending {
+    color: #90afa4;
+    cursor: not-allowed;
+}
+
+.sidebar.collapsible-sidebar .sidebar-footer {
+    flex-shrink: 0;
+}
+
+.sidebar.collapsible-sidebar .sidebar-account,
+.sidebar.collapsible-sidebar .sidebar-account-details {
+    min-width: 0;
+}
+
+.sidebar.collapsible-sidebar .sidebar-avatar {
+    flex: 0 0 34px;
+}
+
+.sidebar.collapsible-sidebar .sidebar-account-details strong,
+.sidebar.collapsible-sidebar .sidebar-account-details small {
+    display: block;
+}
+
+.sidebar.collapsible-sidebar .sidebar-account-details strong {
+    overflow-wrap: anywhere;
+}
+
+.sidebar.collapsible-sidebar .logout-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 10px;
+    border: 0;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 13px;
+}
+
+.sidebar.collapsible-sidebar .logout-button:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.sidebar.collapsible-sidebar :is(a, button, [tabindex]):focus-visible {
+    outline: 2px solid #c7a869;
+    outline-offset: -3px;
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-brand {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-label,
+.sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-brand-details,
+.sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-account-details {
+    display: none;
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed nav a,
+.sidebar.collapsible-sidebar.sidebar--collapsed nav .sidebar-pending {
+    justify-content: center;
+    padding: 10px;
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-account {
+    justify-content: center;
+    padding: 8px 4px;
+}
+
+.sidebar-tooltip {
+    position: fixed;
+    z-index: 100;
+    width: max-content;
+    max-width: min(200px, calc(100vw - 20px));
+    padding: 8px 11px;
+    border: 1px solid rgba(199, 168, 105, 0.35);
+    border-radius: 7px;
+    background: #0f302a;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+@media (max-width: 900px) {
+    .sidebar.collapsible-sidebar,
+    .sidebar.collapsible-sidebar.sidebar--collapsed {
+        position: static;
+        flex: 0 0 auto;
+        width: 100%;
+        height: auto;
+        padding: 14px 16px;
+        transition: none;
+    }
+    .sidebar.collapsible-sidebar .sidebar-brand,
+    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-brand {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+    }
+    .sidebar.collapsible-sidebar nav {
+        flex: 0 0 auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+    .sidebar.collapsible-sidebar nav a,
+    .sidebar.collapsible-sidebar nav .sidebar-pending {
+        width: auto;
+    }
+    .sidebar.collapsible-sidebar.sidebar--collapsed nav {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .sidebar.collapsible-sidebar.sidebar--collapsed nav a,
+    .sidebar.collapsible-sidebar.sidebar--collapsed nav .sidebar-pending {
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+    }
+    .sidebar.collapsible-sidebar .sidebar-footer {
+        margin-top: 12px;
+    }
+    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-account {
+        margin-bottom: 0;
+    }
+    .sidebar.collapsible-sidebar.sidebar--collapsed .logout-button {
+        flex: 0 0 44px;
+        width: 44px;
+    }
+}
+
+@media (max-width: 650px) {
+    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav a,
+    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav .sidebar-pending {
+        width: 100%;
+        min-width: 0;
+        font-size: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar.collapsible-sidebar,
+    .sidebar.collapsible-sidebar nav a {
+        transition: none;
+    }
+}
