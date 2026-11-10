@@ -1,5 +1,5 @@
 import { useContext, useState, type FormEvent } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation,useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import "./AuthPage.css";
 
@@ -16,6 +16,10 @@ function AuthPage({
     const auth = useContext(AuthContext);
     const navigate = useNavigate();
 
+    const location = useLocation();
+    const destination = typeof location.state?.from === "string"
+        ? location.state.from : "/";
+
     const [mode, setMode] = useState<Mode>(initialMode);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -26,7 +30,7 @@ function AuthPage({
 
     if (!auth) throw new Error("AuthProvider missing");
 
-    const { user, setUser } = auth;
+    const { user, setUser, loading } = auth;
     const isRegister = mode === "register";
 
     function switchMode() {
@@ -67,7 +71,7 @@ function AuthPage({
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (busy) return;
+        if (busy || loading) return;
 
         setBusy(true);
         setError("");
@@ -94,7 +98,7 @@ function AuthPage({
             }
 
             setUser(result.user);
-            navigate("/", { replace: true });
+            navigate(destination, { replace: true });
         } catch (error: unknown) {
             if (accountCreated) {
                 setMode("login");
@@ -117,8 +121,9 @@ function AuthPage({
         }
     }
 
-    if (user) return <Navigate to="/" replace />;
-
+    if (!loading && user) {
+        return <Navigate to={destination} replace />;
+    }
     return (
         <div className="remote-auth-page">
             <section
@@ -225,7 +230,7 @@ function AuthPage({
                                 aria-controls="auth-password"
                                 aria-pressed={showPassword}
                                 onClick={() => setShowPassword(!showPassword)}
-                                disabled={busy}
+                                disabled={busy || loading}
                             >
                                 {showPassword ? "Hide" : "Show"}
                             </button>
@@ -262,7 +267,7 @@ function AuthPage({
                 <p className="remote-auth-switch">
                     {isRegister
                         ? "Already have an account? "
-                        : "Don’t have an account? "}
+                        : "Don't have an account? "}
 
                     <button
                         type="button"

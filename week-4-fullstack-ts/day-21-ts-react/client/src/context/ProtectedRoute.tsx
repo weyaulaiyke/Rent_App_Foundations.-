@@ -1,18 +1,28 @@
 import { useContext, type ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import AuthContext from "./AuthContext";
 
 function ProtectedRoute({children}: {children: ReactNode}){
    const auth = useContext(AuthContext);
+   const location = useLocation();
+
    if(!auth) throw new Error("AuthProvider missing");
+
    const {user, loading} = auth;
-    if(loading){
-        return <p>Checking login...</p>
+
+    if(loading || !user){
+        return (
+            <Navigate
+            to="/login"
+            replace
+            state={{
+                from:location.pathname + location.search + location.hash
+            }}
+            />
+        );
     }
-    if (!user){
-        return <Navigate to="/login" replace/>
-    }
-    return children;
+    return <>{children}</>;
+    
 }
 
 export default ProtectedRoute;
