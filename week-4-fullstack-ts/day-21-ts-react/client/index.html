@@ -6,6 +6,32 @@
     <link rel="icon" type="image/svg+xml" href="/remote-r.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>REMOTE</title>
+
+    <script>
+        (function() {
+            var preference = "system";
+
+            try {
+                preference =
+                    localStorage.getItem("remote-theme") || "system";
+            } catch (_) {}
+
+            var dark =
+                preference === "dark" ||
+                (
+                    preference !== "light" &&
+                    window.matchMedia(
+                        "(prefers-color-scheme: dark)"
+                    ).matches
+                );
+
+            var theme = dark ? "dark" : "light";
+
+            document.documentElement.dataset.theme = theme;
+            document.documentElement.style.colorScheme = theme;
+        })();
+    </script>
+
 </head>
 
 <body>

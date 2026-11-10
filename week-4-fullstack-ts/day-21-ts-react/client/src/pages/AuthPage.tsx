@@ -2,6 +2,7 @@ import { useContext, useState, type FormEvent } from "react";
 import { Navigate, useLocation,useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import "./AuthPage.css";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 
 const API_URL =
     import.meta.env.VITE_API_URL || "http://localhost:3000";

@@ -7,6 +7,7 @@ import {
 } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 import {
   LayoutDashboard,
@@ -316,6 +317,7 @@ function Sidebar() {
                   <div className="sidebar-account-details">
                       <strong>REMOTE Account</strong>
                       <small>Signed in</small>
+                      <ThemeSwitcher compact={collapsed}/>
                   </div>
               </div>
 

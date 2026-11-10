@@ -1,0 +1,478 @@
+:root {
+    --app-bg: #f4f6f5;
+    --app-surface: #ffffff;
+    --app-surface-alt: #f1f5f2;
+    --app-text: #19362f;
+    --app-muted: #65766d;
+    --app-border: #dce5df;
+    --app-accent: #c7a869;
+    --app-field-bg: #ffffff;
+    --app-brand: #236452;
+    --app-brand-hover: #1b4e40;
+    --app-on-brand: #ffffff;
+    --app-link: #18473a;
+    --app-link-hover: #2e7663;
+    --app-hover: #f8fbf9;
+    --app-focus: #2d7765;
+    --app-focus-ring: #2d776529;
+    --app-success: #23704b;
+    --app-danger: #b13e3e;
+    --app-danger-action: #b64b49;
+    --app-danger-action-hover: #943b39;
+    --app-cancel: #e1e9e5;
+    --app-success-bg: #edf5ee;
+    --app-success-border: #c5d9c8;
+    --app-error-bg: #fff2ee;
+    --app-error-border: #e5c3b8;
+    --app-shadow: 0 2px 8px #1530270a;
+}
+
+:root[data-theme="dark"] {
+    --app-bg: #0e1c18;
+    --app-surface: #182d26;
+    --app-surface-alt: #21382f;
+    --app-text: #e5eee9;
+    --app-muted: #adc0b7;
+    --app-border: #364e45;
+    --app-accent: #d3b478;
+    --app-field-bg: #12241f;
+    --app-brand: #26745e;
+    --app-brand-hover: #2b8068;
+    --app-link: #9ad6b9;
+    --app-link-hover: #c2ebd3;
+    --app-hover: #203a30;
+    --app-focus: #91cbb0;
+    --app-focus-ring: #91cbb029;
+    --app-success: #91d9aa;
+    --app-danger: #ffaaa0;
+    --app-danger-action: #b94744;
+    --app-danger-action-hover: #a53e3b;
+    --app-cancel: #30483d;
+    --app-success-bg: #163b2b;
+    --app-success-border: #366b4a;
+    --app-error-bg: #402521;
+    --app-error-border: #75473f;
+    --app-shadow: 0 2px 10px #00000026;
+}
+
+
+/* Page surfaces and headings */
+
+:root,
+body,
+.main-content {
+    background: var(--app-bg);
+    color: var(--app-text);
+}
+
+.main-content :is(h1, h2, h3),
+.dashboard-heading,
+.dashbord-heading {
+    color: var(--app-text);
+}
+
+.card,
+.occupancy-panel,
+.quick-actions,
+.property-card,
+.unit-card,
+.renters-form,
+.property-form,
+.payment-form,
+.unit-form {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    box-shadow: var(--app-shadow);
+}
+
+.card h3,
+.property-card p,
+.occupancy-panel>p,
+.quick-actions>p,
+.archived-page>p {
+    color: var(--app-muted);
+}
+
+.card p,
+.unit-card p,
+.archived-page .property-card p,
+.archived-page h1,
+.occupancy-panel h2,
+.quick-actions h2 {
+    color: var(--app-text);
+}
+
+.card:hover {
+    box-shadow: var(--app-shadow);
+}
+
+.property-card a {
+    color: var(--app-link);
+}
+
+.property-card a:hover {
+    color: var(--app-link-hover);
+}
+
+.quick-actions a,
+.quick-actions button {
+    background: var(--app-surface);
+    color: var(--app-text);
+    border-color: var(--app-border);
+}
+
+.quick-actions a:hover,
+.quick-actions button:hover {
+    background: var(--app-surface-alt);
+}
+
+.main-content .welcome-banner h2 {
+    color: #ffffff;
+}
+
+
+/* Tables */
+
+table,
+.renters-table,
+.payments-table,
+.arrears-table {
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: var(--app-shadow);
+}
+
+th,
+td {
+    border-bottom-color: var(--app-border);
+}
+
+table thead th {
+    background: var(--app-surface-alt);
+    color: var(--app-muted);
+}
+
+table tbody tr:hover {
+    background: var(--app-hover);
+}
+
+.payment-amount,
+.total-paid {
+    color: var(--app-success);
+}
+
+.arrears-amount {
+    color: var(--app-danger);
+}
+
+
+/* Forms and buttons */
+
+input,
+select,
+textarea {
+    background: var(--app-field-bg);
+    color: var(--app-text);
+    border-color: var(--app-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--app-muted);
+    opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--app-focus);
+    box-shadow: 0 0 0 3px var(--app-focus-ring);
+}
+
+form button[type="submit"],
+.btn-restore,
+.btn-edit {
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+}
+
+form button[type="submit"]:hover,
+.btn-restore:hover,
+.btn-edit:hover {
+    background: var(--app-brand-hover);
+}
+
+.btn-delete {
+    background: var(--app-danger-action);
+    color: var(--app-on-brand);
+}
+
+.btn-delete:hover {
+    background: var(--app-danger-action-hover);
+}
+
+.btn-cancel {
+    background: var(--app-cancel);
+    color: var(--app-text);
+}
+
+.archived-page .empty-state {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-muted);
+}
+
+
+/* Login and signup */
+
+:root[data-theme="dark"] .remote-auth-page {
+    --remote-auth-green: var(--app-text);
+    --remote-auth-gold: var(--app-accent);
+    --remote-auth-muted: var(--app-muted);
+    background: radial-gradient( ellipse at 10% 5%, #203e31, transparent 45%), var(--app-bg);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-card {
+    background: var(--app-surface);
+    border-color: var(--app-border);
+    box-shadow: var(--app-shadow);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-input {
+    background: var(--app-field-bg);
+    color: var(--app-text);
+    border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-input::placeholder {
+    color: var(--app-muted);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-input:focus {
+    border-color: var(--app-focus);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-brand-mark {
+    background: #153f37;
+    color: var(--app-accent);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-submit {
+    background: var(--app-brand);
+    border-color: var(--app-brand);
+    color: var(--app-on-brand);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-submit:hover:not(:disabled) {
+    background: var(--app-brand-hover);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-footer {
+    border-color: var(--app-border);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-notice {
+    background: var(--app-success-bg);
+    border-color: var(--app-success-border);
+    color: var(--app-success);
+}
+
+:root[data-theme="dark"] .remote-auth-page .remote-auth-error {
+    background: var(--app-error-bg);
+    border-color: var(--app-error-border);
+    color: var(--app-danger);
+}
+
+
+/* Theme menu */
+
+.theme-switcher {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.theme-switcher .theme-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    list-style: none;
+    cursor: pointer;
+}
+
+.theme-switcher .theme-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.theme-switcher .theme-trigger svg {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.theme-switcher .theme-trigger-text {
+    flex: 1;
+    text-align: left;
+}
+
+.theme-switcher .theme-chevron {
+    margin-left: auto;
+}
+
+.theme-switcher .theme-trigger:focus-visible {
+    outline: 2px solid var(--app-focus);
+    outline-offset: 3px;
+}
+
+.theme-switcher[open] .theme-trigger {
+    border-color: var(--app-accent);
+}
+
+.theme-switcher .theme-menu {
+    position: absolute;
+    z-index: 120;
+    bottom: calc(100% + 8px);
+    left: 0;
+    box-sizing: border-box;
+    display: grid;
+    gap: 2px;
+    width: 180px;
+    max-width: calc(100vw - 24px);
+    min-width: 0;
+    margin: 0;
+    padding: 8px;
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: 0 8px 24px #00000026;
+}
+
+.theme-switcher:not([open]) .theme-menu {
+    display: none;
+}
+
+.theme-switcher .theme-menu legend {
+    padding: 0 5px;
+    color: var(--app-muted);
+    font-size: 11px;
+}
+
+.theme-switcher .theme-menu label {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 40px;
+    margin: 0;
+    padding: 8px;
+    border-radius: 6px;
+    color: var(--app-text);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.theme-switcher .theme-menu label:hover {
+    background: var(--app-surface-alt);
+}
+
+.theme-switcher .theme-menu label:focus-within {
+    outline: 2px solid var(--app-focus);
+    outline-offset: -2px;
+}
+
+.theme-switcher .theme-menu input[type="radio"] {
+    appearance: auto;
+    box-sizing: border-box;
+    flex: 0 0 16px;
+    width: 16px;
+    height: 16px;
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: initial;
+    box-shadow: none;
+    accent-color: var(--app-brand);
+    cursor: pointer;
+}
+
+.theme-switcher .theme-menu input[type="radio"]:checked+span {
+    font-weight: 700;
+}
+
+.theme-switcher--compact {
+    width: 44px;
+}
+
+.theme-switcher--compact .theme-trigger {
+    justify-content: center;
+    width: 44px;
+    min-height: 44px;
+    padding: 10px;
+}
+
+.theme-switcher--compact .theme-trigger-text,
+.theme-switcher--compact .theme-chevron {
+    display: none;
+}
+
+.sidebar .theme-switcher {
+    margin-bottom: 8px;
+}
+
+.sidebar .theme-switcher .theme-trigger {
+    background: #ffffff0f;
+    border-color: #ffffff26;
+    color: #e2eee9;
+}
+
+.sidebar .theme-switcher .theme-trigger:hover {
+    background: #ffffff1f;
+}
+
+.sidebar .theme-switcher .theme-trigger:focus-visible {
+    outline-color: var(--app-accent);
+}
+
+.sidebar.collapsible-sidebar.sidebar--collapsed .theme-switcher--compact {
+    margin-inline: auto;
+}
+
+.auth-theme-control {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}
+
+.auth-theme-control .theme-switcher,
+.auth-theme-control .theme-trigger {
+    width: auto;
+}
+
+.auth-theme-control .theme-menu {
+    top: calc(100% + 8px);
+    bottom: auto;
+    right: 0;
+    left: auto;
+}
+
+@media (max-width: 900px) {
+    .sidebar.collapsible-sidebar.sidebar--collapsed .theme-switcher--compact {
+        flex: 0 0 44px;
+        margin: 0;
+    }
+}
