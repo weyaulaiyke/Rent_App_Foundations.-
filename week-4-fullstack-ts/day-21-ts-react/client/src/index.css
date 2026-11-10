@@ -756,3 +756,22 @@ table tbody tr:hover {
 .sidebar-avatar {
     font-weight: 900;
 }
+
+.maintenance-form input,
+.maintenance-form select,
+.maintenance-form textarea,
+.maintenance-form button {
+    box-sizing: border-box;
+    height: 52px;
+    margin-top: 0;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
+.maintenance-form textarea {
+    min-height: 52px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: inherit;
+    resize: vertical;
+}

@@ -161,6 +161,7 @@ function MaintenancePage() {
             <h1 className="dashbord-heading">Maintenance</h1>
 
             <form
+                className="maintenance-form"
                 onSubmit={(event) => {
                     event.preventDefault();
                     void handleSubmit();
