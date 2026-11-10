@@ -7,6 +7,7 @@ import ArrearsPage from "./pages/ArrearsPage";
 import PaymentsPage from "./pages/PaymentsPage";
 import ArchivedRentersPage from "./pages/ArchivedRenters";
 import MaintenancePage from "./pages/MaintenancePage";
+import SettingsPage from "./pages/SettingsPage";
 
 import { Routes, Route, useLocation } from "react-router-dom";
 
@@ -67,6 +68,7 @@ const { user } = auth;
                     <Route path="/register" element={<RegisterPage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
                     <Route path="*" element={<p>Page not found</p>}/>
+                    <Route path="/settings" element={<ProtectedRoute><SettingsPage/></ProtectedRoute>}/>
                 </Routes>
             </main>
         </>

@@ -1,0 +1,67 @@
+.settings-page {
+    width: 100%;
+    max-width: 900px;
+}
+
+.settings-page .settings-appearance {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    padding: 26px;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: var(--app-shadow);
+}
+
+.settings-page .settings-appearance-copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-page .settings-appearance-copy h2 {
+    margin: 0 0 8px;
+    color: var(--app-text);
+    font-size: 18px;
+}
+
+.settings-page .settings-appearance-copy p {
+    margin: 0;
+    color: var(--app-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.settings-page .settings-appearance-copy .settings-help {
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.settings-page .settings-theme-control {
+    flex: 0 0 200px;
+    width: 200px;
+    min-width: 0;
+}
+
+.settings-page .settings-theme-control .theme-menu {
+    top: calc(100% + 8px);
+    bottom: auto;
+    right: 0;
+    left: auto;
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .settings-page .settings-appearance {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 20px;
+        padding: 22px;
+    }
+    .settings-page .settings-theme-control {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+}

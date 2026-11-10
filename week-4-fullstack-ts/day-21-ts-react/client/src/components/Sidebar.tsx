@@ -7,7 +7,7 @@ import {
 } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-import ThemeSwitcher from "./ThemeSwitcher";
+
 
 import {
   LayoutDashboard,
@@ -57,7 +57,7 @@ function Sidebar() {
       try {
           localStorage.setItem(STORAGE_KEY, String(collapsed));
       } catch {
-          // The toggle still works when storage is unavailable.
+
       }
   }, [collapsed]);
 
@@ -182,7 +182,7 @@ function Sidebar() {
       },
       {
           label: "Settings",
-          path: null,
+          path: "/settings",
           icon: <Settings size={19} />
       }
   ];
@@ -317,7 +317,6 @@ function Sidebar() {
                   <div className="sidebar-account-details">
                       <strong>REMOTE Account</strong>
                       <small>Signed in</small>
-                      <ThemeSwitcher compact={collapsed}/>
                   </div>
               </div>
 
