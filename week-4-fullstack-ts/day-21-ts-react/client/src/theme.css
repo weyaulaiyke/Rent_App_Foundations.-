@@ -476,3 +476,19 @@ form button[type="submit"]:hover,
         margin: 0;
     }
 }
+
+:root[data-theme="dark"] {
+    --app-bg: #121416;
+    --app-surface: #1c1f23;
+    --app-surface-alt: #262a30;
+    --app-field-bg: #171a1f;
+    --app-text: #eef0f3;
+    --app-muted: #aeb5bf;
+    --app-border: #39404a;
+    --app-hover: #2a3038;
+    --app-cancel: #333a44;
+}
+
+:root[data-theme="dark"] .remote-auth-page {
+    background: var(--app-bg);
+}
