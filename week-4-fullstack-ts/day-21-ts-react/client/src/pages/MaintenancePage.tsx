@@ -1,8 +1,7 @@
+import { useApiFetch, useOrganization } from "../context/OrganizationContext";
 import useFetch from "../hooks/useFetch";
 import { useState } from "react";
 
-const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 type Maintenance = {
     id: number;
@@ -22,6 +21,9 @@ type Unit = {
 };
 
 function MaintenancePage() {
+    const apiFetch = useApiFetch();
+    const { can } = useOrganization();
+    const writable = can("maintenance:write");
     const {
         data: requests,
         setData: setRequests,
@@ -45,7 +47,7 @@ function MaintenancePage() {
     const [statusError, setStatusError] = useState("")
 
     async function handleSubmit() {
-        if (saving || updatingId !== null) return;
+        if (!writable || saving || updatingId !== null) return;
 
         if (!unitId || !title.trim() || !description.trim()) {
             setSaveError("Select a unit and complete all fields.");
@@ -57,7 +59,7 @@ function MaintenancePage() {
         setMessage("");
 
         try {
-            const response = await fetch(`${API_URL}/maintenance`, {
+            const response = await apiFetch("/maintenance", {
                 method: "POST",
                 credentials: "include",
                 headers: {
@@ -82,8 +84,8 @@ function MaintenancePage() {
             setMessage("Maintenance request created.");
 
             try {
-                const listResponse = await fetch(
-                    `${API_URL}/maintenance`,
+                const listResponse = await apiFetch(
+                    "/maintenance",
                     { credentials: "include" }
                 );
 
@@ -118,13 +120,13 @@ function MaintenancePage() {
     }
 
     async function updateStatus(id: number, status: string){
-        if(updatingId !== null || saving) return;
+        if(!writable || updatingId !== null || saving) return;
 
         setUpdatingId(id);
         setStatusError("");
 
         try{
-            const response = await fetch (`${API_URL}/maintenance/${id}`, {
+            const response = await apiFetch(`/maintenance/${id}`, {
                 method: "PATCH",
                 credentials: "include",
                 headers: {
@@ -160,7 +162,7 @@ function MaintenancePage() {
         <div>
             <h1 className="dashbord-heading">Maintenance</h1>
 
-            <form
+            {writable && <form
                 className="maintenance-form"
                 onSubmit={(event) => {
                     event.preventDefault();
@@ -232,7 +234,7 @@ function MaintenancePage() {
 
                 {saveError && <p role="alert">{saveError}</p>}
                 {message && <p role="status">{message}</p>}
-            </form>
+            </form>}
 
             {loading && <p>Loading maintenance requests...</p>}
             {error && (
@@ -265,7 +267,7 @@ function MaintenancePage() {
                                     <select
                                 aria-label={`Status for ${request.title}`}
                                 value={request.status}
-                                disabled={updatingId !== null || saving}
+                                disabled={!writable || updatingId !== null || saving}
                                 onChange={(event) => {
                                     void updateStatus(request.id, event.target.value);
                                 }}

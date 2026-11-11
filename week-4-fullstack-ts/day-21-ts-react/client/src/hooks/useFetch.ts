@@ -1,49 +1,35 @@
 import { useState, useEffect } from "react";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { useApiFetch, useOrganization } from "../context/OrganizationContext";
+import { readResponse } from "../lib/api";
 
-function useFetch<T>(url: string) {
+function useFetch<T>(url: string, enabled = true) {
+    const { organization, loading: organizationLoading } = useOrganization();
+    const apiFetch = useApiFetch();
+    const active = enabled && Boolean(organization) && !organizationLoading;
     const [data, setData] = useState<T | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(active);
     const [error, setError] = useState<string | null>(null);
+    const [revision, setRevision] = useState(0);
 
     useEffect(function() {
-        setLoading(true);
+        const controller = new AbortController();
+        setData(null);
         setError(null);
-
-        fetch(`${API_URL}${url}`, {
-                credentials: "include"
+        setLoading(active);
+        if (!active) return () => controller.abort();
+        apiFetch(url, { signal: controller.signal })
+            .then(readResponse<T>)
+            .then((result) => {
+                if (!controller.signal.aborted) { setData(result); setLoading(false); }
             })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error("Request failed");
-                }
-
-                return response.json();
-            })
-            .then(function(result: unknown) {
-                if (typeof result === "object" &&
-                result !== null &&
-                "data" in result &&
-                result.data !== undefined) {
-                    setData(result.data as T);
-                } else {
-                    setData(result as T)
-                }
-                setLoading(false);
-            })
-            .catch(function(error: unknown) {
-                console.error(error);
-                setError(error instanceof Error ? error.message : "Request failed");
+            .catch((error: unknown) => {
+                if (controller.signal.aborted) return;
+                setError(error instanceof Error ? error.message : "Request failed.");
                 setLoading(false);
             });
-    }, [url]);
+        return () => controller.abort();
+    }, [url, active, apiFetch, revision]);
 
-    return {
-        data,
-        setData,
-        loading,
-        error
-    };
+    return { data, setData, loading, error, reload: () => setRevision((value) => value + 1) };
 }
-
 export default useFetch;

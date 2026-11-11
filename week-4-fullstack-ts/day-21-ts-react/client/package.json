@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run typecheck && vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test:browser": "node tests/financial.browser.cjs"
   },
   "dependencies": {
     "lucide-react": "^1.67.0",
@@ -24,6 +26,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "json-server": "^0.17.4",
+    "playwright": "^1.65.0",
     "typescript": "^7.0.2",
     "vite": "^4.4.5"
   }
