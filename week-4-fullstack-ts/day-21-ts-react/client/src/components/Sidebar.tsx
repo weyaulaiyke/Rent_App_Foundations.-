@@ -63,7 +63,10 @@ function Sidebar() {
 
   if (!auth) throw new Error("AuthProvider missing");
 
-  const { setUser } = auth;
+  const { user, setUser } = auth;
+
+  const accountLabel = 
+    typeof user?.email === "string" ? user.email : "REMOTE Account"
 
   function toggleSidebar() {
       setTooltip(null);
@@ -315,7 +318,7 @@ function Sidebar() {
                   </div>
 
                   <div className="sidebar-account-details">
-                      <strong>REMOTE Account</strong>
+                      <strong title={accountLabel}>{accountLabel}</strong>
                       <small>Signed in</small>
                   </div>
               </div>
