@@ -183,6 +183,46 @@ app.post("/organizations", requireAuth, async function(req, res){
     }
 });
 
+app.get("/organizations", requireAuth, async function(req, res){
+    const userId = req.userId;
+
+    if (userId === undefined) {
+        return res.status(401).json({
+            error: "Authentication required"
+        });
+    }
+
+    try {
+        const memberships = await prisma.organizationMembership.findMany({
+            where: {
+                userId: userId
+            },
+            include:{
+                organization: true
+            },
+            orderBy: {
+                id: "asc"
+            }
+        });
+
+        return res.json({
+            data: memberships.map(function(membership){
+                return {
+                    id: membership.organization.id,
+                    name: membership.organization.name,
+                    role: membership.role
+                };
+            })
+        });
+    } catch (error) {
+        console.error("Could not load organizations:", error);
+
+        return res.status(500).json({
+            error: "Could not load organizations"
+        });
+    }
+});
+
 app.get("/properties", requireAuth, async function(req, res) {
     const userId = req.userId;
 
