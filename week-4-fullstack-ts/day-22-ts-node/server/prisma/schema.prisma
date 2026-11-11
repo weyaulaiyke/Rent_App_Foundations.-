@@ -23,12 +23,16 @@ model User {
 }
 
 model Property {
-  id     Int    @id @default(autoincrement())
-  name   String
-  userId Int
+  id             Int    @id @default(autoincrement())
+  name           String
+  userId         Int
+  organizationId Int?
 
-  user  User   @relation(fields: [userId], references: [id])
-  units Unit[]
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  units        Unit[]
+
+  @@index([organizationId])
 }
 
 model Unit {
@@ -42,15 +46,18 @@ model Unit {
 }
 
 model Renter {
-  id         Int     @id @default(autoincrement())
-  name       String
-  isArchived Boolean @default(false)
+  id             Int     @id @default(autoincrement())
+  name           String
+  isArchived     Boolean @default(false)
+  userId         Int
+  organizationId Int?
 
-  leases   Lease[]
-  payments Payment[]
+  user         User          @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  leases       Lease[]
+  payments     Payment[]
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
+  @@index([organizationId])
 }
 
 model Lease {
@@ -88,6 +95,9 @@ model Organization {
   name        String
   createdAt   DateTime                 @default(now())
   memberships OrganizationMembership[]
+
+  properties Property[]
+  renters    Renter[]
 }
 
 enum OrganizationRole {
