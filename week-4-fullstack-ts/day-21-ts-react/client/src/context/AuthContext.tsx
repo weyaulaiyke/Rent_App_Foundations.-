@@ -1,5 +1,5 @@
+import { apiFetch } from "../lib/api";
 import { createContext, useEffect, useState} from "react";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 type AuthValue = {
     user: Record<string, unknown> | null;
     setUser: (user: Record<string, unknown> | null) => void;
@@ -13,7 +13,7 @@ function AuthProvider({children}: {children: React.ReactNode}){
     const [loading, setLoading] = useState<boolean>(true);
    
     useEffect(function(){
-        fetch(`${API_URL}/auth/me`,{
+        apiFetch("/auth/me",{
             credentials:"include"
         })
         .then(function(response){

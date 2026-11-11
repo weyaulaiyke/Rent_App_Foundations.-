@@ -1,1085 +1,281 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken")
-const cors = require("cors");
-const requireAuth = require("./middleware/auth")
-import { z } from "zod";
 import express = require("express");
-const cookieParser = require("cookie-parser")
-import PrismaPackage = require("@prisma/client")
-import { error } from "console";
-const { PrismaClient } = PrismaPackage;
-require("dotenv").config();
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
+import { prisma } from "./prisma";
+import { HttpError, positiveId } from "./http";
+import { organizationRoutes } from "./organizations";
+import { billingRoutes } from "./billing/routes";
+import { paymentPublicRoutes } from "./billing/mobileMoney";
+import { documentRoutes } from "./documents";
+import { organizationId, requireOrganization, requirePermission } from "./middleware/organization";
+import { requireMutationOrigin, requireReceiptRequest } from "./middleware/requestOrigin";
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const requireAuth = require("./middleware/auth");
 
-declare global {
-    namespace Express {
-        interface Request {
-            userId?: number;
-        }
-    }
+export const app = express();
+// Render's production ingress adds one trusted proxy hop. Other deployments
+// can set a bounded hop count; never trust arbitrary forwarding chains.
+const proxyHops = Number(process.env.TRUST_PROXY_HOPS ?? (process.env.NODE_ENV === "production" ? "1" : "0"));
+if (!Number.isInteger(proxyHops) || proxyHops < 0 || proxyHops > 5) {
+    throw new Error("TRUST_PROXY_HOPS must be an integer between 0 and 5");
 }
-
-const renterSchema = z.object({
-    name: z.string().trim().min(1)
-});
-
-type RenterInput = z.infer<typeof renterSchema>
-
-const app = express();
-const prisma = new PrismaClient();
-
-app.use(express.json());
+app.set("trust proxy", proxyHops);
+app.use(express.json({
+    verify: function(req, _res, buffer) { (req as express.Request).rawBody = Buffer.from(buffer); }
+}));
 app.use(cookieParser());
 app.use(cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
-    credentials: true
+    credentials: true,
+    exposedHeaders: ["X-Organization-Id"]
 }));
-
-app.get("/", function(req, res) {
-    res.json({
-        message: "Rent API is running"
-    });
+app.use(function(_req, res, next) {
+    res.setHeader("Cache-Control", "no-store");
+    next();
 });
 
+const nameSchema = z.object({ name: z.string().trim().min(1) });
+const integer = z.coerce.number().int().positive().max(2147483647);
+const unitSchema = z.object({ number: z.string().trim().min(1), propertyId: integer });
+const maintenanceSchema = z.object({ unitId: integer, title: z.string().trim().min(1), description: z.string().trim().min(1) });
+const leaseSchema = z.object({ renterId: integer, unitId: integer, monthlyRent: integer });
+const renterSchema = z.object({
+    name: z.string().trim().min(1),
+    email: z.union([z.string().trim().max(254).email(), z.literal(""), z.null()]).optional(),
+    phone: z.union([z.string().trim().max(32), z.null()]).optional()
+});
+function renterInput(input: unknown) {
+    const value = parse(renterSchema, input, "Provide a name and valid optional contact details");
+    return {
+        name: value.name,
+        ...(value.email === undefined ? {} : { email: value.email || null }),
+        ...(value.phone === undefined ? {} : { phone: value.phone || null })
+    };
+}
+const credentialsSchema = z.object({ email: z.string().min(1), password: z.string().min(1) });
+
+function parse<T>(schema: z.ZodType<T>, input: unknown, message: string): T {
+    const result = schema.safeParse(input);
+    if (!result.success) throw new HttpError(400, message);
+    return result.data;
+}
+// Use both ends of a lease's relationship when reading or changing it.
+function leaseScope(id: number) {
+    return { renter: { organizationId: id }, unit: { property: { organizationId: id } } };
+}
+
+app.get("/", function(_req, res) {
+    res.json({ message: "Rent API is running" });
+});
 app.post("/auth/register", async function(req, res) {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({
-            error: "Email and password are required"
-        });
-    }
+    const { email, password } = parse(credentialsSchema, req.body, "Email and password are required");
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
         data: {
-            email: email,
-            passwordHash: passwordHash
-        }
+            email,
+            passwordHash,
+            memberships: {
+                create: { role: "OWNER", organization: { create: { name: "My workspace" } } }
+            }
+        },
+        select: { id: true, email: true }
     });
-    return res.status(201).json({
-        id: user.id,
-        email: user.email
-    })
-})
-
+    res.status(201).json(user);
+});
 app.post("/auth/login", async function(req, res) {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({
-            error: "Email and password are required"
-        });
-    }
-    const user = await prisma.user.findUnique({
-        where: {
-            email: email
-        }
-    });
-    if (!user) {
-        return res.status(401).json({
-            error: "Invalid email or password"
-        })
-    }
-    const passwordMatches = await bcrypt.compare(
-        password,
-        user.passwordHash
-    )
-    if (!passwordMatches) {
-        return res.status(401).json({
-            error: "Invalid email or password"
-        })
-    }
-    const token = jwt.sign({ userId: user.id },
-        process.env.JWT_SECRET, { expiresIn: "1d" })
+    const { email, password } = parse(credentialsSchema, req.body, "Email and password are required");
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !await bcrypt.compare(password, user.passwordHash)) throw new HttpError(401, "Invalid email or password");
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new HttpError(503, "Sign-in is temporarily unavailable");
+    const token = jwt.sign({ userId: user.id }, secret, { expiresIn: "1d", algorithm: "HS256" });
     res.cookie("token", token, {
         httpOnly: true,
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         secure: process.env.NODE_ENV === "production",
         maxAge: 24 * 60 * 60 * 1000
-    })
-    return res.json({
-        message: "Login successful",
-        user: {
-            id: user.id,
-            email: user.email
-        }
     });
+    res.json({ message: "Login successful", user: { id: user.id, email: user.email } });
 });
-
-app.post("/auth/logout", function(req, res){
-    res.clearCookie("token",{
+app.post("/auth/logout", function(_req, res) {
+    res.clearCookie("token", {
         httpOnly: true,
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production"
     });
-    return res.json({
-        message: "Logout successful",
-        
-    })
-})
-
+    res.json({ message: "Logout successful" });
+});
 app.get("/auth/me", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if (userId === undefined){
-        return res.status(404).json({
-            error: "Not authenticated"
-        });
-    }
-    const user = await prisma.user.findUnique({
-        where: {
-            id: userId
-        }
-    })
-    if (!user) {
-        return res.status(404).json({
-            error: "User not found"
-        });
-    }
-    return res.json({
-        id: user.id,
-        email: user.email
-    })
-})
+    const user = await prisma.user.findUnique({ where: { id: req.userId! }, select: { id: true, email: true } });
+    if (!user) throw new HttpError(401, "Authentication required");
+    res.json(user);
+});
+app.use(paymentPublicRoutes);
+// Public provider callbacks do not use a browser session. All private routes
+// below reject cross-site cookie mutations, independently of CORS headers.
+app.use(requireMutationOrigin);
+app.use(organizationRoutes);
 
-app.get("/properties", requireAuth, async function(req, res) {
-    const userId = req.userId;
+// All business routes below require a current database-backed membership.
+const business = express.Router();
+business.use(requireAuth, requireOrganization);
+app.use(business);
+business.get("/payments/:id/receipt.pdf", requireReceiptRequest);
+business.use(billingRoutes);
+business.use(documentRoutes);
 
-    if (userId === undefined){
-        return res.status(401).json({
-            error: "Not authenticated"   
-        })
-    }
-    const properties = await prisma.property.findMany({
-        where: {
-            userId: userId
-        }
-    });
-    return res.json({
-        data: properties
-    });
+business.get("/properties", async function(req, res) {
+    const data = await prisma.property.findMany({ where: { organizationId: organizationId(req) } });
+    res.json({ data });
+});
+business.post("/properties", requirePermission("property:write"), async function(req, res) {
+    const { name } = parse(nameSchema, req.body, "Property name is required");
+    const data = await prisma.property.create({ data: { name, userId: req.userId!, organizationId: organizationId(req) } });
+    res.status(201).json({ data });
+});
+business.patch("/properties/:id", requirePermission("property:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "property ID");
+    const { name } = parse(nameSchema, req.body, "Property name is required");
+    const data = await prisma.property.update({ where: { id, organizationId: organizationId(req) }, data: { name } });
+    res.json({ data });
+});
+business.delete("/properties/:id", requirePermission("property:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "property ID");
+    await prisma.property.delete({ where: { id, organizationId: organizationId(req) } });
+    res.json({ data: { message: "Property deleted" } });
 });
 
-app.post("/properties", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-            
-        })
-    }
-    const { name } = req.body;
-
-    if (!name) {
-        return res.status(400).json({
-            error: "Property name is required"
-        });
-    }
-    const property = await prisma.property.create({
-        data: {
-            name: name,
-            userId: userId
-        }
-    });
-    return res.status(201).json({
-        data: property
-    });
+business.get("/units", async function(req, res) {
+    const data = await prisma.unit.findMany({ where: { property: { organizationId: organizationId(req) } }, include: { property: true } });
+    res.json({ data });
+});
+business.post("/units", requirePermission("property:write"), async function(req, res) {
+    const input = parse(unitSchema, req.body, "Valid unit number and propertyId are required");
+    const property = await prisma.property.findFirst({ where: { id: input.propertyId, organizationId: organizationId(req) } });
+    if (!property) throw new HttpError(404, "Property not found");
+    const data = await prisma.unit.create({ data: input });
+    res.status(201).json({ data });
+});
+business.patch("/units/:id", requirePermission("property:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "unit ID");
+    const { number } = parse(z.object({ number: z.string().trim().min(1) }), req.body, "Unit number is required");
+    const data = await prisma.unit.update({ where: { id, property: { organizationId: organizationId(req) } }, data: { number } });
+    res.json({ data });
+});
+business.delete("/units/:id", requirePermission("property:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "unit ID");
+    await prisma.unit.delete({ where: { id, property: { organizationId: organizationId(req) } } });
+    res.json({ data: { message: "Unit deleted" } });
 });
 
-app.patch("/properties/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const propertyId = Number(req.params.id);
-    const { name } = req.body;
-
-    const property = await prisma.property.findFirst({
-        where: {
-            id: propertyId,
-            userId: userId
-        }
+business.get("/maintenance", async function(req, res) {
+    const data = await prisma.maintenance.findMany({
+        where: { unit: { property: { organizationId: organizationId(req) } } },
+        include: { unit: { include: { property: true } } }
     });
-    if (!property) {
-        return res.status(404).json({
-            error: "Property not found"
-        });
-    }
-    const updatedProperty = await prisma.property.update({
-        where: {
-            id: propertyId
-        },
-        data: {
-            name: name
-        }
+    res.json({ data });
+});
+business.post("/maintenance", requirePermission("maintenance:write"), async function(req, res) {
+    const input = parse(maintenanceSchema, req.body, "Valid unitId, title and description are required");
+    const unit = await prisma.unit.findFirst({ where: { id: input.unitId, property: { organizationId: organizationId(req) } } });
+    if (!unit) throw new HttpError(404, "Unit not found");
+    const data = await prisma.maintenance.create({ data: input });
+    res.status(201).json({ data });
+});
+business.patch("/maintenance/:id", requirePermission("maintenance:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "maintenance request ID");
+    const status = parse(z.enum(["OPEN", "IN_PROGRESS", "COMPLETED"]), req.body?.status, "Status must be OPEN, IN_PROGRESS or COMPLETED");
+    const result = await prisma.maintenance.updateMany({
+        where: { id, unit: { property: { organizationId: organizationId(req) } } },
+        data: { status }
     });
-    return res.json({
-        data: updatedProperty
-    })
-})
-
-app.delete("/properties/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const propertyId = Number(req.params.id);
-    const property = await prisma.property.findFirst({
-        where: {
-            id: propertyId,
-            userId: userId
-        }
-    });
-    if (!property) {
-        return res.status(404).json({
-            error: "Property not found"
-        });
-    }
-    await prisma.property.delete({
-        where: {
-            id: propertyId
-        }
-    });
-    return res.json({
-        data: {
-            message: "Property deleted"
-        }
-    });
+    if (result.count === 0) throw new HttpError(404, "Maintenance request not found");
+    res.json({ data: { id, status } });
 });
 
-app.get("/units", requireAuth, async function(req, res){
-    const userId = req.userId;
-
-    if(userId === undefined){
-        return res.status(401).json({
-            error: "Not authenticated"
-        });
-    }
-
-    const units = await prisma.unit.findMany({
-        where: {
-            property: {
-                userId: userId
-            }
-        },
-        include: {
-            property: true
-        }
-    });
-    return res.json({
-        data: units
-    })
-})
-
-app.post("/units", requireAuth, async function(req, res){
-    const userId = req.userId;
-
-    if (userId === undefined){
-        return res.status(401).json({
-            error: "Not authenticated"
-        });
-    }
-    const { number, propertyId } = req.body;
-    const parsedPropertyId = Number(propertyId);
-
-    if(
-        typeof number !== "string" ||
-        !number.trim() ||
-        !Number.isInteger(parsedPropertyId) ||
-        parsedPropertyId <= 0
-    ){
-        return res.status(400).json({
-            error: "Valid unit number and propertyId are required"
-        });
-    }
-
-    const property = await prisma.property.findFirst({
-        where: {
-            id: parsedPropertyId,
-            userId: userId
-        }
-    });
-
-    if (!property){
-        return res.status(404).json({
-            error: "Property not found"
-        });
-    }
-
-    const unit = await prisma.unit.create({
-        data:{
-            number: number.trim(),
-            propertyId: parsedPropertyId
-        }
-    });
-    return res.status(201).json({
-        data: unit
-    })
+business.get("/renters", async function(req, res) {
+    const data = await prisma.renter.findMany({ where: { organizationId: organizationId(req), isArchived: false } });
+    res.json({ data });
+});
+business.get("/renters/archived", async function(req, res) {
+    const data = await prisma.renter.findMany({ where: { organizationId: organizationId(req), isArchived: true } });
+    res.json({ data });
+});
+business.post("/renters", requirePermission("renter:write"), async function(req, res) {
+    const input = renterInput(req.body);
+    const data = await prisma.renter.create({ data: { ...input, userId: req.userId!, organizationId: organizationId(req) } });
+    res.status(201).json({ data });
+});
+business.patch("/renters/:id", requirePermission("renter:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "renter ID");
+    const input = renterInput(req.body);
+    const data = await prisma.renter.update({ where: { id, organizationId: organizationId(req) }, data: input });
+    res.json({ data });
+});
+business.patch("/renters/:id/restore", requirePermission("renter:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "renter ID");
+    const data = await prisma.renter.update({ where: { id, organizationId: organizationId(req) }, data: { isArchived: false } });
+    res.json({ data });
+});
+business.delete("/renters/:id", requirePermission("renter:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "renter ID");
+    await prisma.renter.update({ where: { id, organizationId: organizationId(req) }, data: { isArchived: true } });
+    res.json({ data: { message: "Renter deleted" } });
 });
 
-app.get("/maintenance", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not aunthenticated"
-        });
+business.get("/leases", requirePermission("finance:read"), async function(req, res) {
+    const data = await prisma.lease.findMany({ where: leaseScope(organizationId(req)), include: { renter: true, unit: { include: { property: true } } } });
+    res.json({ data });
+});
+business.post("/leases", requirePermission("lease:write"), async function(req, res) {
+    const input = parse(leaseSchema, req.body, "Valid renterId, unitId and monthlyRent are required");
+    const orgId = organizationId(req);
+    const [renter, unit] = await Promise.all([
+        prisma.renter.findFirst({ where: { id: input.renterId, organizationId: orgId } }),
+        prisma.unit.findFirst({ where: { id: input.unitId, property: { organizationId: orgId } } })
+    ]);
+    if (!renter) throw new HttpError(404, "Renter not found");
+    if (!unit) throw new HttpError(404, "Unit not found");
+    const data = await prisma.lease.create({ data: input });
+    res.status(201).json({ data });
+});
+business.patch("/leases/:id", requirePermission("lease:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "lease ID");
+    const input = parse(z.object({ monthlyRent: integer, unitId: integer.optional() }), req.body, "Valid monthlyRent and unitId are required");
+    const orgId = organizationId(req);
+    if (input.unitId !== undefined) {
+        const unit = await prisma.unit.findFirst({ where: { id: input.unitId, property: { organizationId: orgId } } });
+        if (!unit) throw new HttpError(404, "Unit not found");
     }
-    const requests = await prisma.maintenance.findMany({
-        where: {
-            unit:{
-            property: {
-                userId: userId
-            }
-        } 
-    },
-        include: {
-            unit:{ 
-                include:{
-                    property: true
-                }
-            }
-        }
-    });
-    return res.json({
-        data: requests
-    });
+    const changes = { monthlyRent: input.monthlyRent, ...(input.unitId === undefined ? {} : { unitId: input.unitId }) };
+    const data = await prisma.lease.update({ where: { id, ...leaseScope(orgId) }, data: changes });
+    res.json({ data });
+});
+business.delete("/leases/:id", requirePermission("lease:write"), async function(req, res) {
+    const id = positiveId(req.params.id, "lease ID");
+    await prisma.lease.delete({ where: { id, ...leaseScope(organizationId(req)) } });
+    res.json({ data: { message: "Lease deleted" } });
 });
 
-app.post("/maintenance", requireAuth, async function(req, res) {
-    const userId = req.userId;
 
-    if (userId === undefined) {
-        return res.status(401).json({
-            error: "Not authenticated"
-        });
+app.use(function(_req, _res, next) { next(new HttpError(404, "Page not found")); });
+app.use(function(error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) {
+    if (error instanceof HttpError) return res.status(error.status).json({ error: error.message });
+    if (error instanceof SyntaxError && "body" in error) return res.status(400).json({ error: "Invalid JSON body" });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") return res.status(404).json({ error: "Record not found" });
+        if (error.code === "P2002") return res.status(409).json({ error: "An account or membership already exists" });
+        if (error.code === "P2003") return res.status(409).json({ error: "This record is still used by related records" });
+        if (error.code === "P2034") return res.status(409).json({ error: "The data changed concurrently. Please try again" });
     }
-
-    const { unitId, title, description } = req.body ?? {};
-
-    if (
-        !Number.isInteger(unitId) || 
-        unitId <= 0 ||
-        typeof title !== "string" || 
-        !title.trim() || 
-        typeof description !== "string" ||
-        !description.trim()
-    ) {
-        return res.status(400).json({
-            error:"Valid unitId, title and description are required"
-        });
-    }
-
-    const unit = await prisma.unit.findFirst({
-        where: {
-            id: unitId,
-            property: {
-                userId: userId
-            }
-        }
-    });
-
-    if (!unit){
-        return res.status(404).json({
-            error: "Unit not found"
-        });
-    }
-
-    const request = await prisma.maintenance.create({
-        data: {
-            unitId: unitId,
-            title: title.trim(),
-            description: description.trim()
-        }
-    });
-
-    return res.status(201).json({
-        data: request
-    });
+    console.error("Request failed:", error instanceof Error ? error.name : "UnknownError");
+    return res.status(500).json({ error: "Could not complete this request" });
 });
 
-app.patch("/maintenance/:id", requireAuth, async function(req, res){
-    const userId = req.userId;
-
-    if(userId === undefined){
-        return res.status(401).json({
-            error: "Not authenticated"
-        })
-    }
-
-    const requestId = Number(req.params.id);
-
-    if (!Number.isSafeInteger(requestId) || requestId <= 0){
-        return res.status(400).json({
-            error:"Invalid maintenance request ID"
-        });
-    }
-
-    const result = z 
-    .enum(["OPEN", "IN_PROGRESS", "COMPLETED"])
-    .safeParse(req.body?.status);
-
-    if (!result.success) {
-        return res.status(400).json({
-            error:"Status must be OPEN, IN_PROGRESS or COMPLETED"
-        });
-    }
-
-    const status = result.data
-
-    try{
-        const updated = await prisma.maintenance.updateMany({
-            where: {
-                id: requestId,
-                unit :{
-                    property:{
-                        userId: userId
-                    }
-                }
-            },
-            data: {
-                status: status
-            }
-        });
-
-        if(updated.count === 0 ){
-            return res.status(404).json({
-                error: "Maintenance request not found"
-            })
-        }
-        return res.json({
-            data: {
-                id: requestId,
-                status: status
-            }
-        });
-    } catch (error) {
-        console.error(error);
-
-        return res.status(404).json({
-            error: "Could not update maintenance status"
-        });
-    }
-})
-
-app.patch("/units/:id", requireAuth, async function(req, res) {
-    const userId = req.userId
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const unitId = Number(req.params.id);
-    const { number } = req.body;
-    const unit = await prisma.unit.findFirst({
-        where: {
-            id: unitId,
-            property: {
-                userId: userId
-            }
-        }
-    });
-    if (!unit) {
-        return res.status(404).json({
-            error: "Unit not found"
-        });
-    }
-    const updatedUnit = await prisma.unit.update({
-        where: {
-            id: unitId
-        },
-        data: {
-            number: number
-        }
-    })
-    return res.json({
-        data: updatedUnit
-    })
-})
-
-app.delete("/units/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const unitId = Number(req.params.id);
-    const unit = await prisma.unit.findFirst({
-        where: {
-            id: unitId,
-            property: {
-                userId: userId
-            }
-        }
-    });
-    if (!unit) {
-        return res.status(404).json({
-            error: "Unit not found"
-        });
-    }
-    await prisma.unit.delete({
-        where: {
-            id: unitId
-        }
-    });
-    return res.json({
-        data: {
-            message: "Unit deleted"
-        }
-    });
-});
-
-app.get("/renters", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
+if (require.main === module) {
+    const port = process.env.PORT || 3000;
+    app.listen(port, function() { console.log(`Server running on http://localhost:${port}`); });
 }
-    const renters = await prisma.renter.findMany({
-        where: {
-            isArchived: false,
-            userId: userId
-        }
-    })
-    return res.json({
-        data: renters
-    })
-})
-
-app.get("/renters/archived", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const renters = await prisma.renter.findMany({
-        where: {
-            isArchived: true,
-            userId: userId
-        }
-    });
-    return res.json({
-        data: renters
-    });
-});
-
-app.post("/renters", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const result = renterSchema.safeParse(req.body);
-
-    if (!result.success) {
-        return res.status(400).json({
-            error:"Invalid renter name"
-        });
-    }
-    const { name }: RenterInput = result.data;
-    if (!name) {
-        return res.status(400).json({
-            error: "Renter name is required"
-        })
-    }
-    const renter = await prisma.renter.create({
-        data: {
-            name: name,
-            userId: userId
-        }
-    });
-    return res.status(201).json({
-        data: renter
-    });
-});
-
-app.patch("/renters/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const renterId = Number(req.params.id);
-    const { name } = req.body;
-    const renter = await prisma.renter.findUnique({
-        where: {
-            id: renterId,
-            userId: userId
-        }
-    });
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        });
-    }
-    const updatedRenter = await prisma.renter.update({
-        where: {
-            id: renterId
-        },
-        data: {
-            name: name
-        }
-    });
-    return res.json({
-        data: updatedRenter
-    });
-});
-
-
-app.patch("/renters/:id/restore", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const renterId = Number(req.params.id);
-
-    const renter = await prisma.renter.findUnique({
-        where: {
-            id: renterId,
-            userId: userId
-        }
-    });
-
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        });
-    }
-
-    const restoredRenter = await prisma.renter.update({
-        where: {
-            id: renterId,
-            userId: userId
-        },
-        data: {
-            isArchived: false
-        }
-    });
-
-    return res.json({
-        data: restoredRenter
-    });
-});
-
-app.delete("/renters/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const renterId = Number(req.params.id);
-    const renter = await prisma.renter.findUnique({
-        where: {
-            id: renterId,
-            userId: userId
-        }
-    });
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        });
-    }
-    await prisma.renter.update({
-        where: {
-            id: renterId
-        },
-        data: {
-            isArchived: true
-        }
-    });
-    return res.json({
-        data: {
-            message: "Renter deleted"
-        }
-    });
-});
-
-app.get("/leases", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const leases = await prisma.lease.findMany({
-        where: {
-            unit: {
-                property: {
-                    userId: userId
-                }
-            }
-        },
-        include: {
-            renter: true,
-            unit: {
-                include: {
-                    property: true,
-                }
-            }
-        }
-    })
-    return res.json({
-        data: leases
-    })
-})
-
-app.post("/leases", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const { renterId, unitId, monthlyRent } = req.body;
-    if (!renterId || !unitId || !monthlyRent) {
-        return res.status(400).json({
-            error: "renterId, unitId and monthlyRent are required"
-        });
-    }
-    const unit = await prisma.unit.findFirst({
-        where: {
-            id: Number(unitId),
-            property: {
-                userId: userId
-            }
-        }
-    })
-    if (!unit) {
-        return res.status(404).json({
-            error: "User not found"
-        })
-    }
-    const renter = await prisma.renter.findUnique({
-        where: {
-            id: Number(renterId),
-            userId: userId
-        }
-    });
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        })
-    }
-    const lease = await prisma.lease.create({
-        data: {
-            renterId: Number(renterId),
-            unitId: Number(unitId),
-            monthlyRent: Number(monthlyRent)
-        }
-    })
-    return res.status(201).json({
-        data: lease
-    })
-})
-
-app.patch("/leases/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const leaseId = Number(req.params.id)
-    const { monthlyRent } = req.body
-    const lease = await prisma.lease.findFirst({
-        where: {
-            id: leaseId,
-            unit: {
-                property: {
-                    userId: userId
-                }
-            }
-        }
-    });
-    if (!lease) {
-        return res.status(404).json({
-            error: "Lease not found"
-        });
-    }
-    const updatedLease = await prisma.lease.update({
-        where: {
-            id: leaseId
-        },
-        data: {
-            monthlyRent: Number(monthlyRent)
-        }
-    })
-    return res.json({
-        data: updatedLease
-    })
-})
-
-app.delete("/leases/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const leaseId = Number(req.params.id);
-    const lease = await prisma.lease.findFirst({
-        where: {
-            id: leaseId,
-            unit: {
-                property: {
-                    userId: userId
-                }
-            }
-        }
-    });
-    if (!lease) {
-        return res.status(404).json({
-            error: "Lease not found"
-        });
-    }
-    await prisma.lease.delete({
-        where: {
-            id: leaseId
-        }
-    });
-    return res.json({
-        data: {
-            message: "Lease deleted"
-        }
-    });
-});
-
-app.get("/payments", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const payments = await prisma.payment.findMany({
-        where: {
-            renter: {
-                userId: userId
-            }
-        },
-        include: {
-            renter: true
-        }
-    })
-    return res.json({
-        data: payments
-    });
-});
-
-app.post("/payments", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const { renterId, amount, paymentDate } = req.body;
-    if (!renterId || !amount || !paymentDate) {
-        return res.status(400).json({
-            error: "renterId, amount and paymentDate are required"
-        })
-    }
-    const renter = await prisma.renter.findFirst({
-        where: {
-            id: Number(renterId),
-            userId: userId,
-            leases: {
-                some: {
-                    unit: {
-                        property: {
-                            userId: userId
-                        }
-                    }
-                }
-            }
-        }
-    })
-    if (!renter) {
-        return res.status(404).json({
-            error: "Renter not found"
-        })
-    }
-    const payment = await prisma.payment.create({
-        data: {
-            renterId: Number(renterId),
-            amount: Number(amount),
-            paymentDate: new Date(paymentDate)
-        }
-    });
-    return res.status(201).json({
-        data: payment
-    });
-});
-
-app.patch("/payments/:id", requireAuth, async function(req, res) {
-    const paymentId = Number(req.params.id);
-    const userId = req.userId;
-
-    if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const { amount, paymentDate } = req.body;
-    const payment = await prisma.payment.findFirst({
-        where: {
-            id: paymentId,
-            renter: {
-                userId:userId,
-                leases: {
-                    some: {
-                        unit: {
-                            property: {
-                                userId: userId
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    })
-    if (!payment) {
-        return res.status(404).json({
-            error: "Payment not found"
-        });
-    }
-    const updatedData: {
-        amount?: number;
-        paymentDate?: Date;
-    } = {};
-    if (amount !== undefined) {
-        updatedData.amount = Number(amount)
-    }
-    if (paymentDate !== undefined) {
-        updatedData.paymentDate = new Date(paymentDate);
-    }
-    const updatedPayment = await prisma.payment.update({
-        where: {
-            id: paymentId
-        },
-        data: updatedData
-    })
-    return res.json({
-        data: updatedPayment
-    });
-});
-
-app.delete("/payments/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-     if (userId === undefined) {
-       return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    
-    const paymentId = Number(req.params.id);
-    const payment = await prisma.payment.findFirst({
-        where: {
-            id: paymentId,
-            renter: {
-                userId: userId,
-                leases: {
-                    some: {
-                        unit: {
-                            property: {
-                                userId: userId
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-    if (!payment) {
-        return res.status(404).json({
-            error: "Payment not found"
-        });
-    }
-    await prisma.payment.delete({
-        where: {
-            id: paymentId
-        }
-    });
-    return res.json({
-        data: {
-            message: "Payment deleted"
-        }
-    });
-});
-
-app.get("/reports/arrears", requireAuth, async function(req, res) {
-    const userId = req.userId;
-
-if (userId === undefined) {
-    return res.status(401).json({
-        error: "Not authenticated"
-    });
-}
-    const leases = await prisma.lease.findMany({
-        where: {
-            unit: {
-                property: {
-                    userId: userId
-                }
-            }
-        },
-        include: {
-            renter: {
-                include: {
-                    payments: true
-                }
-            },
-            unit: {
-                include: {
-                    property: true
-                }
-            }
-        }
-    });
-    const arrears = leases
-        .map(function(lease) {
-            const totalPaid = lease.renter.payments.reduce(
-                function(total, payment) {
-                    return total + payment.amount;
-                }, 0);
-            return {
-                renterId: lease.renter.id,
-                renter: lease.renter.name,
-                property: lease.unit.property.name,
-                unit: lease.unit.number,
-                monthlyRent: lease.monthlyRent,
-                totalPaid: totalPaid,
-                arrears: lease.monthlyRent - totalPaid
-            };
-        })
-        .filter(function(item) {
-            return item.arrears > 0;
-        });
-    return res.json({
-        data: arrears
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, function() {
-    console.log(`Server running on http://localhost:${PORT}`);
-});

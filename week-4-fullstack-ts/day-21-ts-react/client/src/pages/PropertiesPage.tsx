@@ -1,221 +1,90 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
+import { useApiFetch, useOrganization } from "../context/OrganizationContext";
+import { errorMessage, readResponse } from "../lib/api";
 
-type Property = {
-    id: number;
-    name: string;
-    location: string;
-};
-
+type Property = { id: number; name: string; location?: string };
 function PropertiesPage() {
+    const apiFetch = useApiFetch();
+    const { can } = useOrganization();
+    const writable = can("property:write");
     const [name, setName] = useState("");
     const [location, setLocation] = useState("");
-
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editName, setEditName] = useState("");
     const [editLocation, setEditLocation] = useState("");
-
-    const {
-        data: properties,
-        setData,
-        loading,
-        error
-    } = useFetch<Property[]>("/properties");
-
-    function handleAddProperty(event: FormEvent<HTMLFormElement>) {
+    const [busy, setBusy] = useState(false);
+    const [actionError, setActionError] = useState("");
+    const { data: properties, setData, loading, error } = useFetch<Property[]>("/properties");
+    async function add(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-
-        const newProperty = {
-            name: name,
-            location: location
-        };
-
-        fetch(`${API_URL}/properties`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials:"include",
-            body: JSON.stringify(newProperty)
-        })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(savedProperty) {
-                setData([
-                    ...(properties ?? []),
-                    savedProperty.data
-                ]);
-
-                setName("");
-                setLocation("");
-            });
+        if (!writable || busy) return;
+        setBusy(true); setActionError("");
+        try {
+            const saved = await readResponse<Property>(await apiFetch("/properties", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.trim(), location: location.trim() })
+            }));
+            setData((current) => [...(current ?? []), saved]); setName(""); setLocation("");
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    function handleUpdateProperty(id: number) {
-        const updatedProperty = {
-            name: editName,
-            location: editLocation
-        };
-
-        fetch(`${API_URL}/properties/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials:"include",
-            body: JSON.stringify(updatedProperty)
-        })
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(savedProperty) {
-                const updatedProperties = (properties ?? []).map(function(property) {
-                    if (property.id === id) {
-                        return savedProperty.data;
-                    }
-
-                    return property;
-                });
-
-                setData(updatedProperties);
-
-                setEditingId(null);
-                setEditName("");
-                setEditLocation("");
-            });
+    async function update(event: FormEvent<HTMLFormElement>, id: number) {
+        event.preventDefault();
+        if (!writable || busy) return;
+        setBusy(true); setActionError("");
+        try {
+            const saved = await readResponse<Property>(await apiFetch(`/properties/${id}`, {
+                method: "PATCH", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: editName.trim(), location: editLocation.trim() })
+            }));
+            setData((current) => current?.map((item) => item.id === id ? saved : item) ?? null);
+            setEditingId(null);
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    if (loading) {
-        return <p>Loading properties...</p>;
+    async function remove(id: number) {
+        if (!writable || busy || !window.confirm("Delete this property?")) return;
+        setBusy(true); setActionError("");
+        try {
+            await readResponse(await apiFetch(`/properties/${id}`, { method: "DELETE" }));
+            setData((current) => current?.filter((item) => item.id !== id) ?? null);
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    if (error) {
-        return <p>{error}</p>;
-    }
-
-    function handleDeleteProperty(id: number){
-        fetch(`${API_URL}/properties/${id}`,{
-            method:"DELETE",
-            credentials:"include"
-        })
-        .then(function(){
-            const remainingProperties = (properties ?? []).filter(function(property){
-                return property.id !== id;
-            })
-            setData(remainingProperties)
-        })
-    }
-    return (
-        <>
-            <h1>Properties</h1>
-
-            <form className="property-form" onSubmit={handleAddProperty}>
-                <label htmlFor="property-name">
-                    Property name
-                </label>
-
-                <input
-                    id="property-name"
-                    type="text"
-                    value={name}
-                    onChange={function(event) {
-                        setName(event.target.value);
-                    }}
-                />
-
-                <label htmlFor="property-location">
-                    Location
-                </label>
-
-                <input
-                    id="property-location"
-                    type="text"
-                    value={location}
-                    onChange={function(event) {
-                        setLocation(event.target.value);
-                    }}
-                />
-
-                <button type="submit">
-                    Add Property
-                </button>
-            </form>
-
-            {(properties ??[]).map(function(property) {
-                return (
-                    <div key={property.id} className="property-card">
-                        {editingId === property.id ? (
-                            <>
-                                <input
-                                    type="text"
-                                    value={editName}
-                                    onChange={function(event) {
-                                        setEditName(event.target.value);
-                                    }}
-                                />
-
-                                <input
-                                    type="text"
-                                    value={editLocation}
-                                    onChange={function(event) {
-                                        setEditLocation(event.target.value);
-                                    }}
-                                />
-
-                                <button
-                                    type="button"
-                                    onClick={function() {
-                                        handleUpdateProperty(property.id);
-                                    }}
-                                >
-                                    Update
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={function() {
-                                        setEditingId(null);
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <Link to={`/properties/${property.id}`}>
-                                    {property.name}
-                                </Link>
-
-                                <p>{property.location}</p>
-
-                                <button
-                                    type="button"
-                                    className="btn-edit"
-                                    onClick={function() {
-                                        setEditingId(property.id);
-                                        setEditName(property.name);
-                                        setEditLocation(property.location);
-                                    }}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                type="button"
-                                className="btn-delete"
-                                onClick={function(){
-                                    handleDeleteProperty(property.id);
-                                }}>
-                                    Delete
-                                </button>
-                            </>
-                        )}
-                    </div>
-                );
-            })}
-        </>
-    );
+    if (loading) return <p role="status">Loading properties…</p>;
+    if (error) return <p role="alert">{error}</p>;
+    return <>
+        <h1 className="dashboard-heading">Properties</h1>
+        {actionError && <p className="workspace-error" role="alert">{actionError}</p>}
+        {writable && <form className="property-form" onSubmit={add}>
+            <label htmlFor="property-name">Property name</label>
+            <input id="property-name" value={name} onChange={(event) => setName(event.target.value)} required disabled={busy} />
+            <label htmlFor="property-location">Location</label>
+            <input id="property-location" value={location} onChange={(event) => setLocation(event.target.value)} disabled={busy} />
+            <button type="submit" disabled={busy}>{busy ? "Saving…" : "Add Property"}</button>
+        </form>}
+        {!properties?.length && <p>No properties in this workspace yet.</p>}
+        {(properties ?? []).map((property) => <div key={property.id} className="property-card">
+            {writable && editingId === property.id ? <form className="workspace-form" onSubmit={(event) => void update(event, property.id)}>
+                <label htmlFor={`edit-property-name-${property.id}`}>Property name</label>
+                <input id={`edit-property-name-${property.id}`} value={editName} onChange={(event) => setEditName(event.target.value)} required disabled={busy} />
+                <label htmlFor={`edit-property-location-${property.id}`}>Location</label>
+                <input id={`edit-property-location-${property.id}`} value={editLocation} onChange={(event) => setEditLocation(event.target.value)} disabled={busy} />
+                <button type="submit" disabled={busy}>Save changes</button>
+                <button type="button" className="btn-cancel" onClick={() => setEditingId(null)} disabled={busy}>Cancel</button>
+            </form> : <>
+                <Link to={`/properties/${property.id}`}>{property.name}</Link>
+                <p>{property.location || ""}</p>
+                {writable && <>
+                    <button className="btn-edit" type="button" disabled={busy} onClick={() => {
+                        setEditingId(property.id); setEditName(property.name); setEditLocation(property.location ?? "");
+                    }}>Edit</button>
+                    <button className="btn-delete" type="button" disabled={busy} onClick={() => void remove(property.id)}>Delete</button>
+                </>}
+            </>}
+        </div>)}
+    </>;
 }
 export default PropertiesPage;

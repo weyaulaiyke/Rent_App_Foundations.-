@@ -1,76 +1,35 @@
+import { useState } from "react";
 import useFetch from "../hooks/useFetch";
+import { useApiFetch, useOrganization } from "../context/OrganizationContext";
+import { errorMessage, readResponse } from "../lib/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-
-type ArchivedRenter = {
-    id: number;
-    name: string;
-    isArchived: boolean;
-};
-
+type Renter = { id: number; name: string; isArchived: boolean };
 function ArchivedRentersPage() {
-    const {
-        data: renters,
-        setData: setRenters,
-        loading,
-        error
-    } = useFetch<ArchivedRenter[]>("/renters/archived");
-
-    async function handleRestore(id: number){
-        try{
-            const response = await fetch(`${API_URL}/renters/${id}/restore`,
-                {
-                    method:"PATCH",
-                    credentials:"include"
-                }
-            );
-            if (!response.ok){
-                throw new Error("Failed to restore renter");
-            }
-            setRenters((current) =>
-            (current || []).filter((renter) => renter.id !== id)
-        );
-
-        } catch (error){
-            console.error("Restore failed:", error);
-            alert("Could not restore renter")
-        }
+    const apiFetch = useApiFetch();
+    const { can } = useOrganization();
+    const { data: renters, setData, loading, error } = useFetch<Renter[]>("/renters/archived");
+    const [busy, setBusy] = useState(false);
+    const [actionError, setActionError] = useState("");
+    async function restore(id: number) {
+        if (busy || !can("renter:write")) return;
+        setBusy(true); setActionError("");
+        try {
+            await readResponse(await apiFetch(`/renters/${id}/restore`, { method: "PATCH" }));
+            setData((current) => current?.filter((item) => item.id !== id) ?? null);
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    if (loading) {
-        return <p>Loading archived renters...</p>;
-    }
-
-    if (error) {
-        return <p>{error}</p>;
-    }
-
-    return (
-        <div className="archived-page">
-            <h1>Archived Renters</h1>
-            <p>View and restore previously archived renters.</p>
-            {renters?.length === 0 && (
-                <p className="empty-state">
-                    No archived renters yet.
-                </p>
-            )}
-
-            {(renters || []).map(function (renter) {
-                return (
-                    <div key={renter.id} className="property-card">
-                        <p>{renter.name}</p>
-                        <button 
-                        type="button"
-                        className="btn-restore" 
-                        onClick={() => handleRestore(renter.id)}
-                        >
-                            Restore
-                        </button>
-                    </div>
-                );
-            })}
-        </div>
-    );
+    if (loading) return <p role="status">Loading archived renters…</p>;
+    if (error) return <p role="alert">{error}</p>;
+    return <div className="archived-page">
+        <h1>Archived Renters</h1>
+        <p>{can("renter:write") ? "View and restore previously archived renters." : "View previously archived renters."}</p>
+        {actionError && <p className="workspace-error" role="alert">{actionError}</p>}
+        {!renters?.length && <p className="empty-state">No archived renters yet.</p>}
+        {(renters ?? []).map((renter) => <div key={renter.id} className="property-card">
+            <p>{renter.name}</p>
+            {can("renter:write") && <button type="button" className="btn-restore" disabled={busy} onClick={() => void restore(renter.id)}>Restore</button>}
+        </div>)}
+    </div>;
 }
-
 export default ArchivedRentersPage;

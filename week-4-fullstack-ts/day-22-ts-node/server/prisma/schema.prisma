@@ -19,15 +19,57 @@ model User {
   passwordHash String
   properties   Property[]
   renters      Renter[]
+  memberships  OrganizationMembership[]
+}
+
+enum OrganizationRole {
+  OWNER
+  PROPERTY_MANAGER
+  STAFF
+}
+
+model Organization {
+  id          Int                      @id @default(autoincrement())
+  name        String
+  createdAt   DateTime                 @default(now())
+  memberships OrganizationMembership[]
+  properties  Property[]
+  renters     Renter[]
+  currency              String @default("UGX")
+  timeZone              String @default("Africa/Kampala")
+  billingDay            Int @default(1)
+  monthlyBillingEnabled Boolean @default(false)
+  remindersEnabled      Boolean @default(false)
+  invoices              Invoice[]
+  paymentRequests       PaymentRequest[]
+  documentDeliveries    DocumentDelivery[]
+}
+
+model OrganizationMembership {
+  id             Int              @id @default(autoincrement())
+  organizationId Int
+  userId         Int
+  role           OrganizationRole @default(STAFF)
+  createdAt      DateTime         @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
 }
 
 model Property {
   id     Int    @id @default(autoincrement())
   name   String
   userId Int
+  organizationId Int
 
   user  User   @relation(fields: [userId], references: [id])
   units Unit[]
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
 }
 
 model Unit {
@@ -44,12 +86,19 @@ model Renter {
   id         Int     @id @default(autoincrement())
   name       String
   isArchived Boolean @default(false)
+  email      String?
+  phone      String?
 
   leases   Lease[]
   payments Payment[]
+  invoices Invoice[]
 
   userId Int
   user   User @relation(fields: [userId], references: [id])
+  organizationId Int
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
 }
 
 model Lease {
@@ -60,6 +109,7 @@ model Lease {
 
   renter Renter @relation(fields: [renterId], references: [id])
   unit   Unit   @relation(fields: [unitId], references: [id])
+  invoices Invoice[]
 }
 
 model Payment {
@@ -67,8 +117,136 @@ model Payment {
   renterId    Int
   amount      Int
   paymentDate DateTime
+  source        PaymentSource @default(LEGACY)
+  receiptNumber String? @unique
+  payerName     String?
+  issuerName    String?
+  voidedAt      DateTime?
+  voidReason    String?
 
   renter Renter @relation(fields: [renterId], references: [id])
+  allocations PaymentAllocation[]
+  paymentRequest PaymentRequest?
+  documentDeliveries DocumentDelivery[]
+}
+
+enum PaymentSource {
+  LEGACY
+  MANUAL
+  MOBILE_MONEY
+}
+
+enum PaymentRequestStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum DocumentKind {
+  INVOICE
+  RECEIPT
+  REMINDER
+  REPORT
+}
+
+enum DocumentDeliveryStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model Invoice {
+  id               Int @id @default(autoincrement())
+  organizationId   Int
+  leaseId          Int
+  renterId         Int
+  number           String
+  periodStart      DateTime @db.Date
+  dueDate          DateTime @db.Date
+  amount           Int
+  currency         String @default("UGX")
+  renterName       String
+  propertyName     String
+  unitNumber       String
+  organizationName String
+  createdAt        DateTime @default(now())
+  voidedAt         DateTime?
+  voidReason       String?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  lease Lease @relation(fields: [leaseId], references: [id])
+  renter Renter @relation(fields: [renterId], references: [id])
+  allocations PaymentAllocation[]
+  paymentRequests PaymentRequest[]
+  documentDeliveries DocumentDelivery[]
+
+  @@unique([organizationId, leaseId, periodStart])
+  @@unique([organizationId, number])
+  @@index([organizationId, dueDate])
+}
+
+model PaymentAllocation {
+  id        Int @id @default(autoincrement())
+  paymentId Int
+  invoiceId Int
+  amount    Int
+  createdAt DateTime @default(now())
+  payment Payment @relation(fields: [paymentId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@unique([paymentId, invoiceId])
+  @@index([invoiceId])
+}
+
+model PaymentRequest {
+  id                    String @id @default(uuid())
+  organizationId        Int
+  invoiceId             Int
+  amount                Int
+  currency              String @default("UGX")
+  payerEmail            String
+  subaccountId          String
+  status                PaymentRequestStatus @default(PENDING)
+  checkoutUrl           String?
+  providerTransactionId String? @unique
+  paymentId             Int? @unique
+  lastVerifiedAt        DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+}
+
+model DocumentDelivery {
+  id             String @id @default(uuid())
+  organizationId Int
+  invoiceId      Int?
+  paymentId      Int?
+  kind           DocumentKind
+  recipient      String
+  status         DocumentDeliveryStatus @default(QUEUED)
+  attempts       Int @default(0)
+  dedupeKey      String @unique
+  reportMonth    String?
+  reportType     String?
+  availableAt    DateTime @default(now())
+  claimedAt      DateTime?
+  firstAttemptAt DateTime?
+  sentAt         DateTime?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id])
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, createdAt])
+  @@index([status, availableAt])
 }
 
 model maintenance {

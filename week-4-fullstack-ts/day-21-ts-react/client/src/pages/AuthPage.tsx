@@ -1,11 +1,10 @@
+import { apiFetch } from "../lib/api";
 import { useContext, useState, type FormEvent } from "react";
 import { Navigate, useLocation,useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import "./AuthPage.css";
 
 
-const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 type Mode = "login" | "register";
 
@@ -45,7 +44,7 @@ function AuthPage({
     }
 
     async function postAuth(path: string) {
-        const response = await fetch(`${API_URL}${path}`, {
+        const response = await apiFetch(path, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

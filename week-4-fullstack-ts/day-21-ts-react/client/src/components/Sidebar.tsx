@@ -1,3 +1,6 @@
+import WorkspaceSelector from "./WorkspaceSelector";
+import { ROLE_LABELS, useOrganization } from "../context/OrganizationContext";
+import { apiFetch } from "../lib/api";
 import {
   useContext,
   useEffect,
@@ -30,13 +33,12 @@ import {
 
 import "./Sidebar.css";
 
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const STORAGE_KEY = "remote-sidebar-collapsed";
 
 function Sidebar() {
   const auth = useContext(AuthContext);
+  const { organization, can } = useOrganization();
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(function() {
@@ -107,7 +109,7 @@ function Sidebar() {
 
   async function handleLogout() {
       try {
-          const response = await fetch(`${API_URL}/auth/logout`, {
+          const response = await apiFetch("/auth/logout", {
               method: "POST",
               credentials: "include"
           });
@@ -146,8 +148,8 @@ function Sidebar() {
           icon: <Users size={19} />
       },
       {
-          label: "Leases",
-          path: null,
+          label: "Invoices & Receipts",
+          path: "/billing",
           icon: <FileText size={19} />
       },
       {
@@ -172,7 +174,7 @@ function Sidebar() {
       },
       {
           label: "Users",
-          path: null,
+          path: "/users",
           icon: <UserCog size={19} />
       },
       {
@@ -185,7 +187,11 @@ function Sidebar() {
           path: "/settings",
           icon: <Settings size={19} />
       }
-  ];
+  ].filter((item) => {
+      if (["Rent Collection", "Deposits & Charges", "Reports", "Invoices & Receipts"].includes(item.label)) return can("finance:read");
+      if (item.label === "Users") return can("members:manage");
+      return true;
+  });
 
   return (
       <aside
@@ -233,6 +239,8 @@ function Sidebar() {
                   )}
               </button>
           </div>
+
+          <WorkspaceSelector compact={collapsed} />
 
           <nav id="sidebar-navigation" aria-label="Main navigation">
               {menuItems.map(function(item) {
@@ -308,7 +316,7 @@ function Sidebar() {
           <div className="sidebar-footer">
               <div
                   className="sidebar-account"
-                  data-tooltip="REMOTE Account — signed in"
+                  data-tooltip={`REMOTE Account — ${organization ? ROLE_LABELS[organization.role] : "signed in"}`}
               >
                   <div className="sidebar-avatar" aria-hidden="true">
                       R
@@ -316,7 +324,7 @@ function Sidebar() {
 
                   <div className="sidebar-account-details">
                       <strong>REMOTE Account</strong>
-                      <small>Signed in</small>
+                      <small>{organization ? ROLE_LABELS[organization.role] : "Signed in"}</small>
                   </div>
               </div>
 

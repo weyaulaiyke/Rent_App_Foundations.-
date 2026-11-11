@@ -1,254 +1,74 @@
 import { useState, type FormEvent } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
+import { useApiFetch, useOrganization } from "../context/OrganizationContext";
+import { errorMessage, readResponse } from "../lib/api";
 
-type Property = {
-    id: number;
-    name: string;
-};
-
-type Unit = {
-    id: number;
-    number: string;
-    propertyId: number;
-};
-
-const API_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:3000";
-    
+type Property = { id: number; name: string };
+type Unit = { id: number; number: string; propertyId: number };
 function PropertyPage() {
-    const [unitNumber, setUnitNumber] = useState("");
-    const [editingUnitId, setEditingUnitId] = useState<number | null>(null);
-    const [editUnitNumber, setEditUnitNumber] = useState("");
-
     const { id } = useParams();
-
-    const {
-        data: properties,
-        loading: propertyLoading,
-        error: propertyError
-    } = useFetch<Property[]>("/properties");
-
-    const {
-        data: allUnits,
-        setData: setAllUnits,
-        loading: unitsLoading,
-        error: unitsError
-    } = useFetch<Unit[]>("/units");
-
-    const property = properties
-        ? properties.find(function(property) {
-              return property.id === Number(id);
-          })
-        : null;
-
-    const units = allUnits
-        ? allUnits.filter(function(unit) {
-              return unit.propertyId === Number(id);
-          })
-        : [];
-
-    if (propertyLoading || unitsLoading) {
-        return <p>Loading property...</p>;
-    }
-
-    if (propertyError || unitsError) {
-        return <p>Failed to load property.</p>;
-    }
-
-    if (!property) {
-        return <p>Property not found.</p>;
-    }
-
-    function handleAddUnit(event: FormEvent<HTMLFormElement>) {
+    const apiFetch = useApiFetch();
+    const { can } = useOrganization();
+    const writable = can("property:write");
+    const [number, setNumber] = useState("");
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editNumber, setEditNumber] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [actionError, setActionError] = useState("");
+    const properties = useFetch<Property[]>("/properties");
+    const units = useFetch<Unit[]>("/units");
+    const property = properties.data?.find((item) => item.id === Number(id));
+    async function save(event: FormEvent<HTMLFormElement>, unitId?: number) {
         event.preventDefault();
-
-        const newUnit = {
-            number: unitNumber,
-            propertyId: Number(id)
-        };
-
-        fetch(`${API_URL}/units`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify(newUnit)
-        })
-            .then(function(response) {
-                if(!response.ok){
-                    throw new Error("Could not add unit")
-                }
-                return response.json();
-            })
-            .then(function(savedUnit) {
-                setAllUnits([
-                    ...(allUnits || []),
-                    savedUnit.data
-                ]);
-                setUnitNumber("");
-            }).catch(function(error){
-                console.error(error);
-                alert("Could not add unit")
-            });
-            }
-
-    function handleUpdateUnit(id: number) {
-        const updatedUnit = {
-            number: editUnitNumber
-        };
-
-        fetch(`${API_URL}/units/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify(updatedUnit)
-        })
-            .then(function(response) {
-                if(!response.ok){
-                    throw new Error("Could not update unit");
-                }
-                return response.json();
-            })
-            .then(function(savedUnit) {
-                const updatedUnits = (allUnits || []).map(
-                    function(unit) {
-                        if (unit.id === id) {
-                            return savedUnit.data;
-                        }
-                        return unit;
-                    }
-                );
-
-                setAllUnits(updatedUnits);
-
-                setEditingUnitId(null);
-                setEditUnitNumber("");
-            }).catch(function(error){
-                console.error(error);
-                alert("Could not update unit");
-            });
+        if (!writable || busy) return;
+        setBusy(true); setActionError("");
+        try {
+            const saved = await readResponse<Unit>(await apiFetch(unitId ? `/units/${unitId}` : "/units", {
+                method: unitId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(unitId ? { number: editNumber.trim() } : { number: number.trim(), propertyId: Number(id) })
+            }));
+            units.setData((current) => unitId ? current?.map((item) => item.id === unitId ? saved : item) ?? null : [...(current ?? []), saved]);
+            setNumber(""); setEditingId(null); setEditNumber("");
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    function handleDeleteUnit(id: number) {
-        fetch(`${API_URL}/units/${id}`, {
-            method: "DELETE",
-            credentials: "include"
-        }).then(function(response) {
-            if(!response.ok){
-                throw new Error("Could not delete unit")
-            }
-            const remainingUnits = (allUnits || []).filter(
-                function(unit) {
-                    return unit.id !== id;
-                }
-            );
-
-            setAllUnits(remainingUnits);
-        }).catch(function(error){
-            console.error(error);
-            alert("Could not delete unit");
-        });
+    async function remove(unitId: number) {
+        if (!writable || busy || !window.confirm("Delete this unit?")) return;
+        setBusy(true); setActionError("");
+        try {
+            await readResponse(await apiFetch(`/units/${unitId}`, { method: "DELETE" }));
+            units.setData((current) => current?.filter((item) => item.id !== unitId) ?? null);
+        } catch (error) { setActionError(errorMessage(error)); }
+        finally { setBusy(false); }
     }
-
-    return (
-        <>
-            <h1>{property.name}</h1>
-
-            <h2>Units</h2>
-
-            <form className= "unit-form" onSubmit={handleAddUnit}>
-                <label htmlFor="unit-number">
-                    Unit number
-                </label>
-
-                <input
-                    id="unit-number"
-                    type="text"
-                    value={unitNumber}
-                    onChange={function(event) {
-                        setUnitNumber(event.target.value);
-                    }}
-                />
-
-                <button type="submit">
-                    Add Unit
-                </button>
-            </form>
-
-            {units.map(function(unit) {
-                return (
-                    <div key={unit.id} className="unit-card">
-                        {editingUnitId === unit.id ? (
-                            <>
-                                <input
-                                    type="text"
-                                    value={editUnitNumber}
-                                    onChange={function(event) {
-                                        setEditUnitNumber(
-                                            event.target.value
-                                        );
-                                    }}
-                                />
-
-                                <button
-                                    type="button"
-                                    className="btn-edit"
-                                    onClick={function() {
-                                        handleUpdateUnit(unit.id);
-                                    }}
-                                >
-                                    Update
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="btn-cancel"
-                                    onClick={function() {
-                                        setEditingUnitId(null);
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            </>
-                        ) : (
-                            <>
-                                <p>
-                                    Unit {unit.number}
-                                </p>
-
-                                <button
-                                    type="button"
-                                    className="btn-edit"
-                                    onClick={function() {
-                                        setEditingUnitId(unit.id);
-                                        setEditUnitNumber(
-                                            unit.number
-                                        );
-                                    }}
-                                >
-                                    Edit
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="btn-delete"
-                                    onClick={function() {
-                                        handleDeleteUnit(unit.id);
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </>
-                        )}
-                    </div>
-                );
-            })}
-        </>
-    );
+    if (properties.loading || units.loading) return <p role="status">Loading property…</p>;
+    if (properties.error || units.error) return <p role="alert">{properties.error || units.error}</p>;
+    if (!property) return <><h1>Property not found in this workspace</h1><Link to="/properties">View properties</Link></>;
+    const propertyUnits = units.data?.filter((item) => item.propertyId === property.id) ?? [];
+    return <>
+        <h1 className="dashboard-heading">{property.name}</h1><h2>Units</h2>
+        {actionError && <p className="workspace-error" role="alert">{actionError}</p>}
+        {writable && <form className="unit-form" onSubmit={(event) => void save(event)}>
+            <label htmlFor="unit-number">Unit number</label>
+            <input id="unit-number" value={number} onChange={(event) => setNumber(event.target.value)} required disabled={busy} />
+            <button type="submit" disabled={busy}>Add Unit</button>
+        </form>}
+        {!propertyUnits.length && <p>No units added yet.</p>}
+        {propertyUnits.map((unit) => <div key={unit.id} className="unit-card">
+            {writable && editingId === unit.id ? <form className="unit-form" onSubmit={(event) => void save(event, unit.id)}>
+                <label htmlFor={`unit-edit-${unit.id}`}>Unit number</label>
+                <input id={`unit-edit-${unit.id}`} value={editNumber} onChange={(event) => setEditNumber(event.target.value)} required disabled={busy} />
+                <button type="submit" disabled={busy}>Save changes</button>
+                <button className="btn-cancel" type="button" disabled={busy} onClick={() => setEditingId(null)}>Cancel</button>
+            </form> : <>
+                <p>Unit {unit.number}</p>
+                {writable && <>
+                    <button className="btn-edit" type="button" disabled={busy} onClick={() => { setEditingId(unit.id); setEditNumber(unit.number); }}>Edit</button>
+                    <button className="btn-delete" type="button" disabled={busy} onClick={() => void remove(unit.id)}>Delete</button>
+                </>}
+            </>}
+        </div>)}
+    </>;
 }
-
 export default PropertyPage;

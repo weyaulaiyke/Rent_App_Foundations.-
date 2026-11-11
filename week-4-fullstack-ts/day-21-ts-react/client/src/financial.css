@@ -1,0 +1,70 @@
+.financial-panel, .financial-provider, .financial-report {
+    margin: 0 0 22px; padding: 22px; border: 1px solid var(--app-border);
+    border-radius: 12px; background: var(--app-surface); color: var(--app-text);
+}
+.financial-panel h2, .financial-provider h2, .financial-report h2 { margin: 0 0 14px; font-size: 18px; }
+.financial-help { color: var(--app-muted); font-size: 12px; line-height: 1.7; }
+.financial-filter-row { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.financial-filter-row > div { min-width: 150px; }
+.financial-filter-row label, .financial-inline-form label { display: block; margin-bottom: 6px; font-size: 12px; }
+.financial-filter-row input, .financial-filter-row select { min-height: 42px; }
+.financial-button, .financial-filter-row button {
+    min-height: 40px; padding: 9px 12px; border: 1px solid var(--app-border); border-radius: 7px;
+    background: var(--app-surface-alt); color: var(--app-text); font: inherit; font-size: 12px; cursor: pointer;
+}
+.financial-button:hover:not(:disabled) { border-color: var(--app-focus); }
+.financial-button:disabled, .financial-inline-form button:disabled { opacity: .55; cursor: not-allowed; }
+.financial-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.financial-actions a { color: var(--app-link); font-size: 13px; }
+.financial-actions-cell { min-width: 240px; width: 310px; vertical-align: top; }
+.financial-actions-cell > div, .financial-actions-cell > button { margin-bottom: 9px; }
+.financial-document-actions { max-width: 340px; }
+.financial-inline-form { display: grid; gap: 8px; margin: 10px 0; padding: 12px; border: 1px solid var(--app-border); border-radius: 8px; background: var(--app-surface-alt); }
+.financial-inline-form h3 { margin: 0 0 5px; font-size: 14px; }
+.financial-inline-form p { margin: 0; font-size: 12px; line-height: 1.6; }
+.financial-inline-form input, .financial-inline-form select, .financial-inline-form textarea { width: 100%; min-width: 0; }
+.financial-inline-form button[type="submit"] { min-height: 40px; }
+.financial-table { min-width: 1100px; margin-bottom: 22px; font-size: 13px; }
+.financial-table td { vertical-align: top; }
+.financial-subline { display: block; margin-top: 5px; color: var(--app-muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.financial-status { display: inline-block; padding: 4px 7px; margin-top: 5px; border: 1px solid var(--app-border); border-radius: 5px; font-size: 10px; font-weight: 700; }
+.financial-status--paid { background: var(--app-success-bg); color: var(--app-success); border-color: var(--app-success-border); }
+.financial-status--void, .financial-status--unpaid { background: var(--app-error-bg); color: var(--app-danger); border-color: var(--app-error-border); }
+.financial-status--partial { background: var(--app-surface-alt); color: var(--app-text); border-color: var(--app-accent); }
+.financial-danger { color: var(--app-danger); }
+.financial-totals { display: flex; flex-wrap: wrap; gap: 20px; margin-top: 18px; color: var(--app-muted); font-size: 13px; }
+.financial-totals strong { color: var(--app-text); }
+.financial-link-result { padding: 10px; margin-top: 10px; border: 1px solid var(--app-border); border-radius: 8px; font-size: 12px; }
+.financial-link-result p { line-height: 1.6; }
+.financial-link-result input { display: block; width: 100%; margin-top: 5px; font-size: 11px; }
+.financial-message { margin: 8px 0; color: var(--app-muted); font-size: 12px; line-height: 1.6; }
+.financial-delivery-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 14px 0; border-bottom: 1px solid var(--app-border); font-size: 12px; overflow-wrap: anywhere; }
+.financial-deliveries { margin-top: 24px; }
+.financial-delivery-row small { width: 100%; }
+.financial-credit-total { padding: 14px 0; }
+.workspace-form .billing-checkbox { display: flex; align-items: center; gap: 10px; line-height: 1.6; }
+.workspace-form .billing-checkbox input[type="checkbox"] { flex: 0 0 18px; width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--app-brand); }
+.financial-definition { display: flex; flex-wrap: wrap; gap: 25px; font-size: 13px; }
+.financial-definition dt { color: var(--app-muted); }
+.financial-definition dd { margin: 5px 0; }
+.settings-workspace .financial-provider { margin: 20px 0 0; background: var(--app-surface-alt); }
+.financial-reference { overflow-wrap: anywhere; }
+.remote-auth-page .financial-auth-link { color: var(--remote-auth-green); font-weight: 700; text-underline-offset: 4px; text-decoration-color: var(--remote-auth-gold); }
+.remote-auth-page a:focus-visible, .financial-button:focus-visible { outline: 2px solid var(--app-focus); outline-offset: 3px; }
+@media (max-width: 650px) {
+    .financial-panel, .financial-provider, .financial-report { padding: 17px; }
+    .financial-filter-row { align-items: stretch; flex-direction: column; }
+    .financial-filter-row > div, .financial-filter-row input, .financial-filter-row select { width: 100%; min-width: 0; }
+}
+/* Keep invoice balances and actions visible as labelled cards on small screens. */
+@media (max-width: 650px) {
+    .invoice-table { display: block; width: 100%; min-width: 0; background: transparent; box-shadow: none; }
+    .invoice-table thead { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+    .invoice-table tbody { display: grid; width: 100%; gap: 15px; }
+    .invoice-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; padding: 16px; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface); }
+    .invoice-table tbody td { display: block; min-width: 0; padding: 10px 0; border: 0; overflow-wrap: anywhere; }
+    .invoice-table td[data-label]::before { content: attr(data-label); display: block; margin-bottom: 6px; color: var(--app-muted); font-size: 11px; font-weight: 600; }
+    .invoice-table tbody td:first-child { grid-column: 1 / -1; margin-bottom: 4px; padding-top: 0; padding-bottom: 13px; border-bottom: 1px solid var(--app-border); }
+    .invoice-table tbody td.financial-actions-cell { grid-column: 1 / -1; width: auto; min-width: 0; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--app-border); }
+    .invoice-table .financial-status { margin-top: 0; }
+}

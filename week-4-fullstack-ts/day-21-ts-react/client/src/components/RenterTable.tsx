@@ -3,6 +3,8 @@ import RenterRow from "./RenterRow";
 type Renter = {
     id: number;
     name: string;
+    email?: string;
+    phone?: string;
     unit: string;
     status: "PAID" | "OVERDUE";
 };
@@ -29,6 +31,8 @@ function RenterTable(props: RenterTableProps){
             <RenterRow
             key={renter.id}
             name={renter.name}
+            email={renter.email}
+            phone={renter.phone}
             unit={renter.unit}
             status={renter.status}
             id={renter.id}
