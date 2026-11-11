@@ -68,6 +68,9 @@ function Sidebar() {
   const accountLabel = 
     typeof user?.email === "string" ? user.email : "REMOTE Account"
 
+ const accountInitial = 
+    accountLabel.trim().charAt(0).toUpperCase() || "R"
+
   function toggleSidebar() {
       setTooltip(null);
       setCollapsed(function(current) {
@@ -314,7 +317,7 @@ function Sidebar() {
                   data-tooltip="REMOTE Account — signed in"
               >
                   <div className="sidebar-avatar" aria-hidden="true">
-                      R
+                      {accountInitial}
                   </div>
 
                   <div className="sidebar-account-details">
