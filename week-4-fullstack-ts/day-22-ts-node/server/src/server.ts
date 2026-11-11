@@ -139,6 +139,50 @@ app.get("/auth/me", requireAuth, async function(req, res) {
     })
 })
 
+app.post("/organizations", requireAuth, async function(req, res){
+    const userId = req.userId;
+
+    if (userId === undefined){
+        return res.status(401).json({
+            error: "Authentication required"
+        });
+    }
+
+    const result = z.object({
+        name: z.string().trim().min(1).max(120)
+    }).safeParse(req.body);
+
+    if (!result.success) {
+        return res.status(400).json({
+            error: "Organization name must contain 1-120 characters"
+        });
+    }
+
+    try {
+        const organization = await prisma.organization.create({
+            data: {
+                name: result.data.name,
+                memberships: {
+                    create: {
+                        userId: userId,
+                        role: "OWNER"
+                    }
+                }
+            }
+        });
+
+        return res.status(201).json({
+            data: organization
+        });
+    } catch (error) {
+        console.error("Organization creation failed:", error);
+
+        return res.status(500).json({
+            error: "Could not crete organization"
+        });
+    }
+});
+
 app.get("/properties", requireAuth, async function(req, res) {
     const userId = req.userId;
 

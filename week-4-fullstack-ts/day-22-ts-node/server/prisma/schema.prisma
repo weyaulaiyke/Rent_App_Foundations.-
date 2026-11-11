@@ -14,11 +14,12 @@ datasource db {
 }
 
 model User {
-  id           Int        @id @default(autoincrement())
-  email        String     @unique
+  id           Int                      @id @default(autoincrement())
+  email        String                   @unique
   passwordHash String
   properties   Property[]
   renters      Renter[]
+  memberships  OrganizationMembership[]
 }
 
 model Property {
@@ -80,4 +81,31 @@ model maintenance {
   createdAt   DateTime @default(now())
 
   unit Unit @relation(fields: [unitId], references: [id])
+}
+
+model Organization {
+  id          Int                      @id @default(autoincrement())
+  name        String
+  createdAt   DateTime                 @default(now())
+  memberships OrganizationMembership[]
+}
+
+enum OrganizationRole {
+  OWNER
+  PROPERTY_MANAGER
+  STAFF
+}
+
+model OrganizationMembership {
+  id             Int              @id @default(autoincrement())
+  userId         Int
+  organizationId Int
+  role           OrganizationRole @default(STAFF)
+  createdAt      DateTime         @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([userId])
 }
