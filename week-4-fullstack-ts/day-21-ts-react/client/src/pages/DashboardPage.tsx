@@ -32,6 +32,12 @@ type Maintenance = {
     status: string;
 };
 
+type Organization = {
+    id: number;
+    name: string;
+    workspaceType: "PERSONAL" | "COMPANY";
+}
+
 function DashboardPage() {
     const {
         data: renters,
@@ -74,6 +80,12 @@ function DashboardPage() {
         loading: maintenanceLoading,
         error: maintenanceError
     } = useFetch<Maintenance[]>("/maintenance");
+    
+    const {
+        data: organizations,
+        loading: organizationsLoading,
+        error: organizationsError
+    } = useFetch<Organization[]>("/organizatons");
 
     if (
         rentersLoading ||
@@ -141,7 +153,11 @@ function DashboardPage() {
 
     return (
         <>
-            <h1 className="dashboard-heading">Dashboard</h1>
+            <h1 className="dashboard-heading">
+                {organizations?.[0]?.workspaceType === "COMPANY"
+                ? "Company Dashboard"
+                : "Dashboard"}
+            </h1>
 
             <div className="summary-cards">
                 <SummaryCard
