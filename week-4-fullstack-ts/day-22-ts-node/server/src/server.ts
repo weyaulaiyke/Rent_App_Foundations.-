@@ -14,6 +14,8 @@ declare global {
     namespace Express {
         interface Request {
             userId?: number;
+            organizationId?: number;
+            organizationRole?: PrismaPackage.OrganizationRole;
         }
     }
 }
@@ -33,6 +35,87 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true
 }));
+
+async function requireOrganization(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+) {
+    const userId = req.userId;
+
+    if(userId === undefined) {
+        return res.status(401).json({
+            error: "Authentication required"
+        });
+    }
+
+    const result = z.coerce.number()
+        .int()
+        .positive()
+        .max(2147483647)
+        .optional()
+        .safeParse(req.get("X-Organization-Id"));
+
+    if (!result.success) {
+        return res.status(400).json({
+            error: "Invalid organization ID"
+        });
+    }
+
+    try {
+        const membership = await prisma.organizationMembership.findFirst({
+            where : {
+                userId: userId,
+                ...(result.data === undefined
+                    ? {} 
+                    : { organizationId: result.data })
+            },
+            orderBy: {
+                id: "asc"
+            }
+        });
+    
+
+    if (!membership) {
+        return res.status(403).json({
+            error: "You do not have access to this organization"
+        });
+    }
+
+    req.organizationId = membership.organizationId;
+    req.organizationRole = membership.role;
+
+    next();
+} catch (error) {
+    console.error("Organizatiom membership check failed:", error);
+    
+        return res.status(500).json({
+            error: "Could not check organization access"
+        });
+    }
+}
+
+app.get(
+    "/organization/current",
+    requireAuth,
+    requireOrganization,
+    function(req, res) {
+        if (
+            req.organizationId === undefined || req.organizationRole === undefined
+        ) {
+            return res.status(403).json({
+                error: "Organization access required"
+            });
+        }
+
+        return res.json({
+            data: {
+                organizationId: req.organizationId,
+                role: req.organizationRole
+            }
+        });
+    }
+);
 
 app.get("/", function(req, res) {
     res.json({
