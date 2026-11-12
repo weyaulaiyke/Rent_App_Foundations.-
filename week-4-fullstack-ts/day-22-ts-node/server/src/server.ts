@@ -95,6 +95,32 @@ async function requireOrganization(
     }
 }
 
+function requireOrganizationRoles(
+    ...allowedRoles: PrismaPackage.OrganizationRole[]
+) {
+    return function(
+        req: express.Request,
+        res: express.Response,
+        next: express.NextFunction
+    ) {
+        const role = req.organizationRole;
+
+        if (role === undefined) {
+            return res.status(403).json({
+                error: "Organization access required"
+            });
+        }
+
+        if (!allowedRoles.includes(role)) {
+            return res.status(403).json({
+                error: "You do not have permission to perform this action"
+            });
+        }
+
+        next();
+    };
+}
+
 app.get(
     "/organization/current",
     requireAuth,
@@ -261,7 +287,7 @@ app.post("/organizations", requireAuth, async function(req, res){
         console.error("Organization creation failed:", error);
 
         return res.status(500).json({
-            error: "Could not crete organization"
+            error: "Could not create organization"
         });
     }
 });
@@ -306,114 +332,215 @@ app.get("/organizations", requireAuth, async function(req, res){
     }
 });
 
-app.get("/properties", requireAuth, async function(req, res) {
-    const userId = req.userId;
+app.get("/properties", requireAuth, requireOrganization, async function(req, res) {
+    const organizationId = req.organizationId;
 
-    if (userId === undefined){
-        return res.status(401).json({
-            error: "Not authenticated"   
-        })
-    }
-    const properties = await prisma.property.findMany({
-        where: {
-            userId: userId
-        }
-    });
-    return res.json({
-        data: properties
-    });
-});
-
-app.post("/properties", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-            
-        })
-    }
-    const { name } = req.body;
-
-    if (!name) {
-        return res.status(400).json({
-            error: "Property name is required"
+    if (organizationId === undefined) {
+        return res.status(403).json({
+            error: "Organization access required"
         });
     }
-    const property = await prisma.property.create({
-        data: {
-            name: name,
-            userId: userId
-        }
-    });
-    return res.status(201).json({
-        data: property
-    });
-});
 
-app.patch("/properties/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const propertyId = Number(req.params.id);
-    const { name } = req.body;
+    try {
+        const properties = await prisma.property.findMany({
+            where: {
+                organizationId: organizationId
+            },
+            orderBy: {
+                id: "asc"
+            }
+        });
 
-    const property = await prisma.property.findFirst({
-        where: {
-            id: propertyId,
-            userId: userId
-        }
-    });
-    if (!property) {
-        return res.status(404).json({
-            error: "Property not found"
+        return res.json({
+            data: properties
+        });
+    } catch (error) {
+        console.error("Could not load properties:", error);
+
+        return res.status(500).json({
+            error: "Could not load properties"
         });
     }
-    const updatedProperty = await prisma.property.update({
-        where: {
-            id: propertyId
-        },
-        data: {
-            name: name
-        }
-    });
-    return res.json({
-        data: updatedProperty
-    })
-})
-
-app.delete("/properties/:id", requireAuth, async function(req, res) {
-    const userId = req.userId;
-    if(userId === undefined){
-        return res.status(401).json({
-            error:"Not authenticated"
-        })
-    }
-    const propertyId = Number(req.params.id);
-    const property = await prisma.property.findFirst({
-        where: {
-            id: propertyId,
-            userId: userId
-        }
-    });
-    if (!property) {
-        return res.status(404).json({
-            error: "Property not found"
-        });
-    }
-    await prisma.property.delete({
-        where: {
-            id: propertyId
-        }
-    });
-    return res.json({
-        data: {
-            message: "Property deleted"
-        }
-    });
 });
+
+app.post(
+    "/properties",
+    requireAuth,
+    requireOrganization,
+    requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
+    async function(req, res) {
+        const userId = req.userId;
+        const organizationId = req.organizationId;
+
+        if (userId === undefined) {
+            return res.status(401).json({
+                error: "Authentication required"
+            });
+        }
+
+        if (organizationId === undefined) {
+            return res.status(403).json({
+                error: "Organization access required"
+            });
+        }
+
+        const result = z.object({
+            name: z.string().trim().min(1).max(120)
+        }).safeParse(req.body);
+
+        if (!result.success) {
+            return res.status(400).json({
+                error: "Property name must contain 1-120 characters"
+            });
+        }
+
+        try {
+            const property = await prisma.property.create({
+                data: {
+                    name: result.data.name,
+                    userId: userId,
+                    organizationId: organizationId
+                }
+            });
+
+            return res.status(201).json({
+                data: property
+            });
+        } catch (error) {
+            console.error("Could not create property:", error);
+
+            return res.status(500).json({
+                error: "Could not create property"
+            });
+        }
+    }
+);
+
+app.patch(
+    "/properties/:id",
+    requireAuth,
+    requireOrganization,
+    requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
+    async function(req, res) {
+        const organizationId = req.organizationId;
+        const propertyId = Number(req.params.id);
+
+        if (organizationId === undefined) {
+            return res.status(403).json({
+                error: "Organization access required"
+            });
+        }
+
+        if (
+            !Number.isInteger(propertyId) ||
+            propertyId <= 0 ||
+            propertyId > 2147483647
+        ) {
+            return res.status(400).json({
+                error: "Invalid property ID"
+            });
+        }
+
+        const result = z.object({
+            name: z.string().trim().min(1).max(120)
+        }).safeParse(req.body);
+
+        if (!result.success) {
+            return res.status(400).json({
+                error: "Property name must contain 1-120 characters"
+            });
+        }
+
+        try {
+            const updateResult = await prisma.property.updateMany({
+                where: {
+                    id: propertyId,
+                    organizationId: organizationId
+                },
+                data: {
+                    name: result.data.name
+                }
+            });
+
+            if (updateResult.count === 0) {
+                return res.status(404).json({
+                    error: "Property not found"
+                });
+            }
+
+            const updatedProperty = await prisma.property.findFirst({
+                where: {
+                    id: propertyId,
+                    organizationId: organizationId
+                }
+            });
+
+            return res.json({
+                data: updatedProperty
+            });
+        } catch (error) {
+            console.error("Could not update property:", error);
+
+            return res.status(500).json({
+                error: "Could not update property"
+            });
+        }
+    }
+);
+
+app.delete(
+    "/properties/:id",
+    requireAuth,
+    requireOrganization,
+    requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
+    async function(req, res) {
+        const organizationId = req.organizationId;
+        const propertyId = Number(req.params.id);
+
+        if (organizationId === undefined) {
+            return res.status(403).json({
+                error: "Organization access required"
+            });
+        }
+
+        if (
+            !Number.isInteger(propertyId) ||
+            propertyId <= 0 ||
+            propertyId > 2147483647
+        ) {
+            return res.status(400).json({
+                error: "Invalid property ID"
+            });
+        }
+
+        try {
+            const deleteResult = await prisma.property.deleteMany({
+                where: {
+                    id: propertyId,
+                    organizationId: organizationId
+                }
+            });
+
+            if (deleteResult.count === 0) {
+                return res.status(404).json({
+                    error: "Property not found"
+                });
+            }
+
+            return res.json({
+                data: {
+                    message: "Property deleted"
+                }
+            });
+        } catch (error) {
+            console.error("Could not delete property:", error);
+
+            return res.status(500).json({
+                error: "Could not delete property"
+            });
+        }
+    }
+);
 
 app.get("/units", requireAuth, async function(req, res){
     const userId = req.userId;
