@@ -258,7 +258,8 @@ app.post("/organizations", requireAuth, async function(req, res){
     }
 
     const result = z.object({
-        name: z.string().trim().min(1).max(120)
+        name: z.string().trim().min(1).max(120),
+        workspaceType: z.enum(["PERSONAL", "COMPANY"]).default("PERSONAL")
     }).safeParse(req.body);
 
     if (!result.success) {
@@ -271,6 +272,7 @@ app.post("/organizations", requireAuth, async function(req, res){
         const organization = await prisma.organization.create({
             data: {
                 name: result.data.name,
+                workspaceType: result.data.workspaceType,
                 memberships: {
                     create: {
                         userId: userId,
@@ -319,7 +321,8 @@ app.get("/organizations", requireAuth, async function(req, res){
                 return {
                     id: membership.organization.id,
                     name: membership.organization.name,
-                    role: membership.role
+                    role: membership.role,
+                    workspaceType: membership.organization.workspaceType
                 };
             })
         });

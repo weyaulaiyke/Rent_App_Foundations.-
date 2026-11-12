@@ -91,10 +91,11 @@ model maintenance {
 }
 
 model Organization {
-  id          Int                      @id @default(autoincrement())
-  name        String
-  createdAt   DateTime                 @default(now())
-  memberships OrganizationMembership[]
+  id            Int                      @id @default(autoincrement())
+  name          String
+  createdAt     DateTime                 @default(now())
+  workspaceType WorkspaceType            @default(PERSONAL)
+  memberships   OrganizationMembership[]
 
   properties Property[]
   renters    Renter[]
@@ -118,4 +119,9 @@ model OrganizationMembership {
 
   @@unique([organizationId, userId])
   @@index([userId])
+}
+
+enum WorkspaceType {
+  PERSONAL
+  COMPANY
 }
