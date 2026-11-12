@@ -65,6 +65,9 @@ function Sidebar() {
 
   const { user, setUser } = auth;
 
+  const dashboardPath =
+    user?.workspaceType === "COMPANY" ? "/company" : "/";
+
   const accountLabel = 
     typeof user?.email === "string" ? user.email : "REMOTE Account"
 
@@ -133,8 +136,8 @@ function Sidebar() {
   const menuItems = [
       {
           label: "Dashboard",
-          path: "/",
-          icon: <LayoutDashboard size={19} />
+          path: dashboardPath,
+          icon: <LayoutDashboard size={17} />
       },
       {
           label: "Properties",
@@ -270,7 +273,7 @@ function Sidebar() {
                           key={item.label}
                           to={item.path}
                           end={
-                              item.path === "/" ||
+                              item.path === dashboardPath ||
                               item.path === "/renters"
                           }
                           className={({ isActive }) =>

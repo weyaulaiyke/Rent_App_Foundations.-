@@ -6,7 +6,7 @@ type Renter = {
 };
 
 type Unit = {
-    id:number;
+    id: number;
 };
 
 type Lease = {
@@ -16,7 +16,7 @@ type Lease = {
 
 type Payment = {
     id: number;
-    renterid: number;
+    renterId: number;
     amount: number;
     paymentDate: string;
 };
@@ -32,13 +32,15 @@ type Maintenance = {
     status: string;
 };
 
-type Organization = {
-    id: number;
-    name: string;
-    workspaceType: "PERSONAL" | "COMPANY";
-}
+type DashboardPageProps = {
+    title?: string;
+    subtitle?: string;
+};
 
-function DashboardPage() {
+function DashboardPage({
+    title = "Dashboard",
+    subtitle
+}: DashboardPageProps) {
     const {
         data: renters,
         loading: rentersLoading,
@@ -53,9 +55,9 @@ function DashboardPage() {
 
     const {
         data: units,
-        loading:unitsLoading,
+        loading: unitsLoading,
         error: unitsError
-    }= useFetch<Unit[]>("/units");
+    } = useFetch<Unit[]>("/units");
 
     const {
         data: leases,
@@ -64,10 +66,10 @@ function DashboardPage() {
     } = useFetch<Lease[]>("/leases");
 
     const {
-        data:payments,
+        data: payments,
         loading: paymentsLoading,
         error: paymentsError
-    }= useFetch<Payment[]>("/payments");
+    } = useFetch<Payment[]>("/payments");
 
     const {
         data: arrears,
@@ -80,12 +82,6 @@ function DashboardPage() {
         loading: maintenanceLoading,
         error: maintenanceError
     } = useFetch<Maintenance[]>("/maintenance");
-    
-    const {
-        data: organizations,
-        loading: organizationsLoading,
-        error: organizationsError
-    } = useFetch<Organization[]>("/organizatons");
 
     if (
         rentersLoading ||
@@ -103,9 +99,9 @@ function DashboardPage() {
         rentersError ||
         propertiesError ||
         leasesError ||
-        arrearsError||
-        unitsError||
-        paymentsError||
+        arrearsError ||
+        unitsError ||
+        paymentsError ||
         maintenanceError
     ) {
         return <p>Failed to load dashboard.</p>;
@@ -124,40 +120,50 @@ function DashboardPage() {
     );
 
     const potentialRent = (leases || []).reduce(
-        function(total, lease){
+        function(total, lease) {
             return total + lease.monthlyRent;
-        },0 );
+        },
+        0
+    );
 
     const outstandingRent = (arrears || []).reduce(
-        function(total, item){
+        function(total, item) {
             return total + item.arrears;
-        }, 0);
+        },
+        0
+    );
 
     const today = new Date();
-    const monthlyPayments = (payments || []).filter(function(payment){
+
+    const monthlyPayments = (payments || []).filter(function(payment) {
         const paymentDate = new Date(payment.paymentDate);
 
         return (
-            paymentDate.getMonth() === today.getMonth() && paymentDate.getFullYear() === today.getFullYear()
+            paymentDate.getMonth() === today.getMonth() &&
+            paymentDate.getFullYear() === today.getFullYear()
         );
     });
 
     const openMaintenance = (maintenance || []).filter(
-        (request) => request.status !== "RESOLVED"
+        function(request) {
+            return request.status !== "COMPLETED";
+        }
     ).length;
 
     const collectedThisMonth = monthlyPayments.reduce(
-        function(total, payment){
+        function(total, payment) {
             return total + payment.amount;
-        },0 );
+        },
+        0
+    );
 
     return (
         <>
-            <h1 className="dashboard-heading">
-                {organizations?.[0]?.workspaceType === "COMPANY"
-                ? "Company Dashboard"
-                : "Dashboard"}
-            </h1>
+            <h1 className="dashboard-heading">{title}</h1>
+
+            {subtitle && (
+                <p className="dashboard-subtitle">{subtitle}</p>
+            )}
 
             <div className="summary-cards">
                 <SummaryCard
@@ -176,8 +182,8 @@ function DashboardPage() {
                 />
 
                 <SummaryCard
-                title="Potential Rent (UGX)"
-                value={potentialRent.toLocaleString("en-UG")}
+                    title="Potential Rent (UGX)"
+                    value={potentialRent.toLocaleString("en-UG")}
                 />
 
                 <SummaryCard

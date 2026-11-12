@@ -8,6 +8,7 @@ import PaymentsPage from "./pages/PaymentsPage";
 import ArchivedRentersPage from "./pages/ArchivedRenters";
 import MaintenancePage from "./pages/MaintenancePage";
 import SettingsPage from "./pages/SettingsPage";
+import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 
 import { Routes, Route, useLocation } from "react-router-dom";
 
@@ -35,9 +36,21 @@ const { user } = auth;
                         : "main-content"
                 }>
                 <Routes>
-                    <Route path="/" element={<ProtectedRoute>
-                        <DashboardPage/>
-                    </ProtectedRoute>} 
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute requiredWorkspaceType="PERSONAL">
+                                <DashboardPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/company"
+                        element={
+                            <ProtectedRoute requiredWorkspaceType="COMPANY">
+                                <CompanyDashboardPage />
+                            </ProtectedRoute>
+                        }
                     />
                    <Route path="/properties" element={<ProtectedRoute>
                         <PropertiesPage/>
@@ -64,7 +77,7 @@ const { user } = auth;
                         <ArrearsPage/>
                     </ProtectedRoute>} 
                     />
-                    <Route path="/maintenance" element={<MaintenancePage/>}/>
+                    <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage/></ProtectedRoute>}/>
                     <Route path="/register" element={<RegisterPage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
                     <Route path="*" element={<p>Page not found</p>}/>
