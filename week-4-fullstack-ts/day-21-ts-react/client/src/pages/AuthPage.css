@@ -313,3 +313,64 @@
     font-size: 26px;
     font-weight: 900;
 }
+
+.remote-auth-page .remote-auth-workspace {
+    min-width: 0;
+}
+
+.remote-auth-page .remote-auth-workspace-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.remote-auth-page .remote-auth-workspace-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    min-width: 0;
+    min-height: 74px;
+    margin: 0;
+    padding: 12px 14px;
+    background: #fcfdfb;
+    border: 1px solid #d8dfd9;
+    border-radius: 10px;
+    box-shadow: none;
+    color: var(--remote-auth-green);
+    font: inherit;
+    line-height: 1.4;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.remote-auth-page .remote-auth-workspace-option:hover:not(:disabled) {
+    border-color: #9aaba3;
+    background: #f5f8f5;
+}
+
+.remote-auth-page .remote-auth-workspace-option.active {
+    background: #edf4f0;
+    border-color: var(--remote-auth-green);
+    box-shadow: 0 0 0 2px #153f3714;
+}
+
+.remote-auth-page .remote-auth-workspace-option strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.remote-auth-page .remote-auth-workspace-option small {
+    display: block;
+    margin-top: 3px;
+    color: var(--remote-auth-muted);
+    font-size: 11px;
+}
+
+@media (max-width: 360px) {
+    .remote-auth-page .remote-auth-workspace-options {
+        grid-template-columns: 1fr;
+    }
+}
