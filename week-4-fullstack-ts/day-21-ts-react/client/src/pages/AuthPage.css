@@ -374,3 +374,30 @@
         grid-template-columns: 1fr;
     }
 }
+
+.remote-auth-page .remote-auth-workspace-option {
+    background: var(--app-surface-alt, #f1f5f2);
+    border-color: var(--app-border, #d8dfd9);
+    color: var(--app-text, #19362f);
+}
+
+.remote-auth-page .remote-auth-workspace-option:hover:not(:disabled) {
+    background: var(--app-hover, #f8fbf9);
+    border-color: var(--app-focus, #2d7765);
+}
+
+.remote-auth-page .remote-auth-workspace-option.active {
+    background: var(--app-brand, #236452);
+    border-color: var(--app-brand, #236452);
+    color: var(--app-on-brand, #ffffff);
+    box-shadow: 0 0 0 2px var(--app-focus-ring, #2d776529);
+}
+
+.remote-auth-page .remote-auth-workspace-option.active small {
+    color: var(--app-on-brand, #ffffff);
+    opacity: 0.82;
+}
+
+.remote-auth-page .remote-auth-workspace-option:not(.active) small {
+    color: var(--app-muted, #65766d);
+}
