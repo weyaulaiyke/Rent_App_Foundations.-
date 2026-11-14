@@ -14,12 +14,27 @@ datasource db {
 }
 
 model User {
-  id           Int                      @id @default(autoincrement())
-  email        String                   @unique
-  passwordHash String
-  properties   Property[]
-  renters      Renter[]
-  memberships  OrganizationMembership[]
+  id                     Int                      @id @default(autoincrement())
+  email                  String                   @unique
+  passwordHash           String
+  properties             Property[]
+  renters                Renter[]
+  memberships            OrganizationMembership[]
+  emailVerifiedAt        DateTime?
+  emailVerificationToken EmailVerificationToken?
+}
+
+model EmailVerificationToken {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  attemptCount Int      @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model Property {

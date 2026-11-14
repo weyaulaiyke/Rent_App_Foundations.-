@@ -146,11 +146,11 @@ function AuthPage({
         event: FormEvent<HTMLFormElement>
     ) {
         event.preventDefault();
-
+    
         if (busy || loading) {
             return;
         }
-
+    
         if (
             isRegister &&
             isCompany &&
@@ -159,21 +159,32 @@ function AuthPage({
             setError("Enter your company name.");
             return;
         }
-
+    
         setBusy(true);
         setError("");
         setNotice("");
-
-        let accountCreated = false;
-
+    
         try {
             if (isRegister) {
                 await postAuth("/auth/register");
-                accountCreated = true;
+    
+                const verificationEmail =
+                    email.trim().toLowerCase();
+    
+                navigate(
+                    `/verify-email?email=${encodeURIComponent(
+                        verificationEmail
+                    )}`,
+                    {
+                        replace: true
+                    }
+                );
+    
+                return;
             }
-
+    
             const result = await postAuth("/auth/login");
-
+    
             if (
                 typeof result !== "object" ||
                 result === null ||
@@ -184,9 +195,9 @@ function AuthPage({
                     "Could not confirm your sign-in. Please try again."
                 );
             }
-
+    
             setUser(result.user);
-
+    
             navigate(
                 result.user.workspaceType === "COMPANY"
                     ? "/company"
@@ -196,15 +207,6 @@ function AuthPage({
                 }
             );
         } catch (error: unknown) {
-            if (accountCreated) {
-                setMode("login");
-                setPassword("");
-                setShowPassword(false);
-                setNotice(
-                    "Your account was created. Please sign in below."
-                );
-            }
-
             setError(
                 error instanceof TypeError
                     ? "Cannot reach the server. Check your connection and try again."
@@ -215,8 +217,8 @@ function AuthPage({
         } finally {
             setBusy(false);
         }
-    }
-
+    } 
+    
     if (!loading && user) {
         return (
             <Navigate

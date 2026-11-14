@@ -9,6 +9,7 @@ import ArchivedRentersPage from "./pages/ArchivedRenters";
 import MaintenancePage from "./pages/MaintenancePage";
 import SettingsPage from "./pages/SettingsPage";
 import CompanyDashboardPage from "./pages/CompanyDashboardPage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 import { Routes, Route, useLocation } from "react-router-dom";
 
@@ -21,13 +22,13 @@ import Sidebar from "./components/Sidebar";
 
 function App() {
     const { pathname } = useLocation();
-    const isAuthPage = pathname === "/login" || pathname === "/register";
+    const isAuthPage = pathname === "/login" || pathname === "/register" || "/verify-email";
     const auth = useContext(AuthContext);
 if (!auth) throw new Error("AuthProvider missing");
 const { user } = auth;
     return (
         <>
-            {user && <Sidebar />}
+            {user && !isAuthPage && <Sidebar />}
 
             <main 
                 className={
@@ -80,6 +81,7 @@ const { user } = auth;
                     <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage/></ProtectedRoute>}/>
                     <Route path="/register" element={<RegisterPage/>}/>
                     <Route path="/login" element={<LoginPage/>}/>
+                    <Route path="/verify-email"element={<VerifyEmailPage />}/>
                     <Route path="*" element={<p>Page not found</p>}/>
                     <Route path="/settings" element={<ProtectedRoute><SettingsPage/></ProtectedRoute>}/>
                 </Routes>

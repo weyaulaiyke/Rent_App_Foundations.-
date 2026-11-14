@@ -401,3 +401,11 @@
 .remote-auth-page .remote-auth-workspace-option:not(.active) small {
     color: var(--app-muted, #65766d);
 }
+
+.remote-auth-page .remote-auth-code-input {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 750;
+    letter-spacing: 0.45em;
+    font-variant-numeric: tabular-nums;
+}

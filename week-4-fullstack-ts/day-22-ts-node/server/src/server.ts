@@ -4,9 +4,10 @@ const cors = require("cors");
 const requireAuth = require("./middleware/auth")
 import { z } from "zod";
 import express = require("express");
+import { sendVerificationCodeEmail } from "./email";
+import { createVerificationCode,verificationCodeMatches } from "./verificationTokens";
 const cookieParser = require("cookie-parser")
 import PrismaPackage = require("@prisma/client")
-import { error } from "console";
 const { PrismaClient } = PrismaPackage;
 require("dotenv").config();
 
@@ -196,6 +197,9 @@ app.post("/auth/register", async function(req, res) {
         });
     }
 
+    const normalizedEmail =
+    result.data.email.toLowerCase();
+
     try {
         const passwordHash = await bcrypt.hash(
             result.data.password,
@@ -207,17 +211,33 @@ app.post("/auth/register", async function(req, res) {
                 ? result.data.companyName as string
                 : "Personal Workspace";
 
+        const {
+            code: verificationCode,
+            codeHash
+        } = createVerificationCode(normalizedEmail);
+
+        const expiresAt = new Date(
+            Date.now() + 10 * 60 * 1000
+        );
+
         const user = await prisma.user.create({
             data: {
-                email: result.data.email,
+                email: normalizedEmail,
                 passwordHash: passwordHash,
+                emailVerificationToken: {
+                    create: {
+                        tokenHash: codeHash,
+                        expiresAt: expiresAt
+                    }
+                },
                 memberships: {
                     create: {
                         role: "OWNER",
                         organization: {
                             create: {
                                 name: workspaceName,
-                                workspaceType: result.data.workspaceType
+                                workspaceType:
+                                    result.data.workspaceType
                             }
                         }
                     }
@@ -229,12 +249,32 @@ app.post("/auth/register", async function(req, res) {
             }
         });
 
+        let emailSent = false;
+
+        try {
+            await sendVerificationCodeEmail({
+                recipientEmail: user.email,
+                verificationCode: verificationCode
+            });
+
+            emailSent = true;
+        } catch (emailError) {
+            console.error(
+                "Verification email delivery failed for user:",
+                user.id,
+                emailError instanceof Error
+                    ? emailError.message
+                    : "Unknown email error"
+            );
+        }
+
         return res.status(201).json({
             user: user,
-            workspace: {
-                name: workspaceName,
-                workspaceType: result.data.workspaceType
-            }
+            verificationRequired: true,
+            emailSent: emailSent,
+            message: emailSent
+                ? "Check your email to verify your account"
+                : "Account created, but the verification email could not be sent"
         });
     } catch (error) {
         if (
@@ -256,6 +296,275 @@ app.post("/auth/register", async function(req, res) {
     }
 });
 
+app.post("/auth/verify-email", async function(req, res) {
+    const result = z.object({
+        email: z.string().trim().email().max(254),
+        code: z.string().trim().regex(/^\d{6}$/)
+    }).safeParse(req.body);
+
+    if (!result.success) {
+        return res.status(400).json({
+            error: "Enter a valid email and six-digit code"
+        });
+    }
+
+    const normalizedEmail =
+        result.data.email.toLowerCase();
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                email: normalizedEmail
+            },
+            include: {
+                emailVerificationToken: true,
+                memberships: {
+                    include: {
+                        organization: true
+                    },
+                    orderBy: {
+                        id: "asc"
+                    }
+                }
+            }
+        });
+
+        const verification =
+            user?.emailVerificationToken;
+
+        if (!user || !verification) {
+            return res.status(400).json({
+                error: "Invalid or expired verification code"
+            });
+        }
+
+        if (verification.expiresAt.getTime() <= Date.now()) {
+            await prisma.emailVerificationToken.deleteMany({
+                where: {
+                    id: verification.id
+                }
+            });
+
+            return res.status(400).json({
+                error: "This code has expired. Request a new code."
+            });
+        }
+
+        if (verification.attemptCount >= 5) {
+            return res.status(429).json({
+                error: "Too many incorrect attempts. Request a new code."
+            });
+        }
+
+        const codeMatches = verificationCodeMatches(
+            normalizedEmail,
+            result.data.code,
+            verification.tokenHash
+        );
+
+        if (!codeMatches) {
+            const nextAttemptCount =
+                verification.attemptCount + 1;
+
+            await prisma.emailVerificationToken.update({
+                where: {
+                    id: verification.id
+                },
+                data: {
+                    attemptCount: {
+                        increment: 1
+                    }
+                }
+            });
+
+            if (nextAttemptCount >= 5) {
+                return res.status(429).json({
+                    error:
+                        "Too many incorrect attempts. Request a new code."
+                });
+            }
+
+            return res.status(400).json({
+                error: "Incorrect verification code"
+            });
+        }
+
+        const membership = user.memberships[0];
+
+        if (!membership) {
+            return res.status(403).json({
+                error: "No workspace is available for this account"
+            });
+        }
+
+        await prisma.$transaction([
+            prisma.user.update({
+                where: {
+                    id: user.id
+                },
+                data: {
+                    emailVerifiedAt: new Date()
+                }
+            }),
+            prisma.emailVerificationToken.delete({
+                where: {
+                    id: verification.id
+                }
+            })
+        ]);
+
+        const token = jwt.sign(
+            {
+                userId: user.id,
+                organizationId: membership.organizationId
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "1d"
+            }
+        );
+
+        res.cookie("token", token, {
+            httpOnly: true,
+            sameSite:
+                process.env.NODE_ENV === "production"
+                    ? "none"
+                    : "lax",
+            secure:
+                process.env.NODE_ENV === "production",
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
+        return res.json({
+            message: "Email verified successfully",
+            user: {
+                id: user.id,
+                email: user.email,
+                organizationId: membership.organizationId,
+                organizationName:
+                    membership.organization.name,
+                workspaceType:
+                    membership.organization.workspaceType,
+                role: membership.role
+            }
+        });
+    } catch (error) {
+        if (
+            typeof error === "object" &&
+            error !== null &&
+            "code" in error &&
+            error.code === "P2025"
+        ) {
+            return res.status(400).json({
+                error: "Invalid or expired verification code"
+            });
+        }
+
+        console.error("Email verification failed:", error);
+
+        return res.status(500).json({
+            error: "Could not verify email"
+        });
+    }
+});
+
+app.post("/auth/resend-verification", async function(req, res) {
+    const result = z.object({
+        email: z.string().trim().email().max(254)
+    }).safeParse(req.body);
+
+    if (!result.success) {
+        return res.status(400).json({
+            error: "Enter a valid email address"
+        });
+    }
+
+    const responseMessage = {
+        message:
+            "If an unverified account exists, a new code will be sent"
+    };
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: {
+                email: result.data.email.toLowerCase()
+            },
+            include: {
+                emailVerificationToken: true
+            }
+        });
+
+        if (!user || user.emailVerifiedAt !== null) {
+            return res.json(responseMessage);
+        }
+
+        const existingCode =
+            user.emailVerificationToken;
+
+        if (
+            existingCode &&
+            Date.now() - existingCode.createdAt.getTime() <
+                60 * 1000
+        ) {
+            return res.json(responseMessage);
+        }
+
+        const {
+            code: verificationCode,
+            codeHash
+        } = createVerificationCode(user.email);
+
+        const now = new Date();
+        const expiresAt = new Date(
+            now.getTime() + 10 * 60 * 1000
+        );
+
+        await prisma.emailVerificationToken.upsert({
+            where: {
+                userId: user.id
+            },
+            update: {
+                tokenHash: codeHash,
+                expiresAt: expiresAt,
+                createdAt: now,
+                attemptCount: 0
+            },
+            create: {
+                userId: user.id,
+                tokenHash: codeHash,
+                expiresAt: expiresAt,
+                attemptCount: 0
+            }
+        });
+
+        try {
+            await sendVerificationCodeEmail({
+                recipientEmail: user.email,
+                verificationCode: verificationCode
+            });
+        } catch (emailError) {
+            console.error(
+                "Verification-code delivery failed for user:",
+                user.id,
+                emailError instanceof Error
+                    ? emailError.message
+                    : "Unknown email error"
+            );
+        }
+
+        return res.json(responseMessage);
+    } catch (error) {
+        console.error(
+            "Could not process verification resend:",
+            error
+        );
+
+        return res.status(500).json({
+            error: "Could not process verification request"
+        });
+    }
+});
+
 app.post("/auth/login", async function(req, res) {
     const result = z.object({
         email: z.string().trim().email().max(254),
@@ -272,7 +581,7 @@ app.post("/auth/login", async function(req, res) {
     try {
         const user = await prisma.user.findUnique({
             where: {
-                email: result.data.email
+                email: result.data.email.toLowerCase()
             }
         });
 
@@ -290,6 +599,13 @@ app.post("/auth/login", async function(req, res) {
         if (!passwordMatches) {
             return res.status(401).json({
                 error: "Invalid email or password"
+            });
+        }
+
+        if (user.emailVerifiedAt === null) {
+            return res.status(403).json({
+                error: "Verify your email address before signing in",
+                code: "EMAIL_NOT_VERIFIED"
             });
         }
 
