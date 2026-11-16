@@ -8,6 +8,7 @@ import { sendVerificationCodeEmail } from "./email";
 import { createVerificationCode,verificationCodeMatches } from "./verificationTokens";
 const cookieParser = require("cookie-parser")
 import PrismaPackage = require("@prisma/client")
+import { rateLimit } from "express-rate-limit";
 const { PrismaClient } = PrismaPackage;
 require("dotenv").config();
 
@@ -75,6 +76,10 @@ async function requireOrganization(
         return res.status(403).json({
             error: "You cannot switch organizations during this session"
         });
+    }
+
+    if (process.env.NODE_ENV === "production") {
+        app.set("trust proxy", 1)
     }
 
     const selectedOrganizationId =
@@ -146,6 +151,48 @@ function requireOrganizationRoles(
     };
 }
 
+const loginRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: {
+        error: "Too many failed login attempts. Try again in 15 minutes."
+    }
+});
+
+const registrationRateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        error: "Too many accounts created from this connection. Try again later."
+    }
+});
+
+const verificationRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: {
+        error: "Too many verification attempts. Try again in 15 minutes."
+    }
+});
+
+const resendRateLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        error: "Too many verification-code requests. Try again later."
+    }
+});
+
 app.get(
     "/organization/current",
     requireAuth,
@@ -174,7 +221,7 @@ app.get("/", function(req, res) {
     });
 });
 
-app.post("/auth/register", async function(req, res) {
+app.post("/auth/register", registrationRateLimiter, async function(req, res) {
     const result = z.object({
         email: z.string().trim().email().max(254),
         password: z.string().min(1).max(72),
@@ -296,7 +343,7 @@ app.post("/auth/register", async function(req, res) {
     }
 });
 
-app.post("/auth/verify-email", async function(req, res) {
+app.post("/auth/verify-email",verificationRateLimiter, async function(req, res) {
     const result = z.object({
         email: z.string().trim().email().max(254),
         code: z.string().trim().regex(/^\d{6}$/)
@@ -468,7 +515,7 @@ app.post("/auth/verify-email", async function(req, res) {
     }
 });
 
-app.post("/auth/resend-verification", async function(req, res) {
+app.post("/auth/resend-verification",resendRateLimiter, async function(req, res) {
     const result = z.object({
         email: z.string().trim().email().max(254)
     }).safeParse(req.body);
@@ -565,7 +612,7 @@ app.post("/auth/resend-verification", async function(req, res) {
     }
 });
 
-app.post("/auth/login", async function(req, res) {
+app.post("/auth/login", loginRateLimiter, async function(req, res) {
     const result = z.object({
         email: z.string().trim().email().max(254),
         password: z.string().min(1),
