@@ -20,6 +20,7 @@ model User {
   properties             Property[]
   renters                Renter[]
   memberships            OrganizationMembership[]
+  sessions               Session[]
   emailVerifiedAt        DateTime?
   emailVerificationToken EmailVerificationToken?
 }
@@ -114,6 +115,7 @@ model Organization {
 
   properties Property[]
   renters    Renter[]
+  Session    Session[]
 }
 
 enum OrganizationRole {
@@ -139,4 +141,22 @@ model OrganizationMembership {
 enum WorkspaceType {
   PERSONAL
   COMPANY
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  userId         Int
+  organizationId Int
+  userAgent      String?
+  createdAt      DateTime  @default(now())
+  lastSeenAt     DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([expiresAt])
 }

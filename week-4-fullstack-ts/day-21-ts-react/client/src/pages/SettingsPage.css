@@ -65,3 +65,140 @@
         width: 100%;
     }
 }
+
+.settings-page .settings-sessions {
+    margin-top: 24px;
+    padding: 26px;
+    border: 1px solid var(--app-border);
+    border-radius: 12px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    box-shadow: var(--app-shadow);
+}
+
+.settings-page .settings-sessions-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+}
+
+.settings-page .settings-sessions-header h2 {
+    margin: 0 0 8px;
+    color: var(--app-text);
+    font-size: 18px;
+}
+
+.settings-page .settings-sessions-header p {
+    margin: 0;
+    color: var(--app-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.settings-page .settings-sign-out-all {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border: 1px solid #b94343;
+    border-radius: 8px;
+    background: transparent;
+    color: #d85b5b;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.settings-page .settings-sign-out-all:hover:not(:disabled) {
+    background: rgba(185, 67, 67, 0.12);
+}
+
+.settings-page .settings-sign-out-all:disabled,
+.settings-page .settings-session button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.settings-page .settings-error {
+    padding: 12px 14px;
+    border: 1px solid rgba(185, 67, 67, 0.5);
+    border-radius: 8px;
+    background: rgba(185, 67, 67, 0.1);
+    color: #d85b5b;
+}
+
+.settings-page .settings-session-list {
+    display: grid;
+    gap: 12px;
+}
+
+.settings-page .settings-session {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px;
+    border: 1px solid var(--app-border);
+    border-radius: 10px;
+}
+
+.settings-page .settings-session-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--app-text);
+}
+
+.settings-page .settings-current {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(43, 130, 108, 0.15);
+    color: var(--app-accent, #2b826c);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.settings-page .settings-session p {
+    margin: 7px 0 0;
+    color: var(--app-muted);
+    font-size: 12px;
+}
+
+.settings-page .settings-session button {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--app-text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.settings-page .settings-session button:hover:not(:disabled) {
+    border-color: #b94343;
+    background: rgba(185, 67, 67, 0.1);
+    color: #d85b5b;
+}
+
+@media (max-width: 600px) {
+    .settings-page .settings-sessions {
+        padding: 22px;
+    }
+    .settings-page .settings-sessions-header {
+        flex-direction: column;
+    }
+    .settings-page .settings-sign-out-all {
+        width: 100%;
+    }
+    .settings-page .settings-session {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .settings-page .settings-session button {
+        width: 100%;
+    }
+}

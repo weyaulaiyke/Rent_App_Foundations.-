@@ -110,23 +110,26 @@ function Sidebar() {
   }
 
   async function handleLogout() {
-      try {
-          const response = await fetch(`${API_URL}/auth/logout`, {
-              method: "POST",
-              credentials: "include"
-          });
+    try {
+        const response = await fetch(`${API_URL}/auth/logout`, {
+            method: "POST",
+            credentials: "include"
+        });
 
-          if (!response.ok) {
-              throw new Error("Logout failed");
-          }
+        if (!response.ok && response.status !== 401) {
+            throw new Error("Logout failed");
+        }
 
-          setUser(null);
-          navigate("/login");
-      } catch (error) {
-          console.error("Logout failed:", error);
-          alert("Could not sign out. Please try again.");
-      }
-  }
+        setUser(null);
+
+        navigate("/login", {
+            replace: true
+        });
+    } catch (error) {
+        console.error("Logout failed:", error);
+        alert("Could not sign out. Please try again.");
+    }
+}
 
   const menuItems = [
       {

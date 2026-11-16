@@ -1,5 +1,4 @@
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken")
 const cors = require("cors");
 const requireAuth = require("./middleware/auth")
 import { z } from "zod";
@@ -9,7 +8,12 @@ import { createVerificationCode,verificationCodeMatches } from "./verificationTo
 const cookieParser = require("cookie-parser")
 import PrismaPackage = require("@prisma/client")
 import { rateLimit } from "express-rate-limit";
-const { PrismaClient } = PrismaPackage;
+import prisma from "./prisma"
+import {
+    createLoginSession,
+    setSessionCookie,
+    clearSessionCookie
+} from "./sessions";
 require("dotenv").config();
 
 declare global {
@@ -19,6 +23,7 @@ declare global {
             organizationId?: number;
             organizationRole?: PrismaPackage.OrganizationRole;
             workspaceType?: PrismaPackage.WorkspaceType;
+            sessionId?: string;
         }
     }
 }
@@ -30,7 +35,6 @@ const renterSchema = z.object({
 type RenterInput = z.infer<typeof renterSchema>
 
 const app = express();
-const prisma = new PrismaClient();
 
 app.use(express.json());
 app.use(cookieParser());
@@ -460,16 +464,13 @@ app.post("/auth/verify-email",verificationRateLimiter, async function(req, res) 
             })
         ]);
 
-        const token = jwt.sign(
-            {
-                userId: user.id,
-                organizationId: membership.organizationId
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1d"
-            }
-        );
+        const { token } = await createLoginSession({
+            userId: user.id,
+            organizationId: membership.organizationId,
+            userAgent: req.get("user-agent") ?? null
+        });
+        
+        setSessionCookie(res, token);
 
         res.cookie("token", token, {
             httpOnly: true,
@@ -692,16 +693,13 @@ app.post("/auth/login", loginRateLimiter, async function(req, res) {
             });
         }
 
-        const token = jwt.sign(
-            {
-                userId: user.id,
-                organizationId: membership.organizationId
-            },
-            process.env.JWT_SECRET,
-            {
-                expiresIn: "1d"
-            }
-        );
+        const { token } = await createLoginSession({
+            userId: user.id,
+            organizationId: membership.organizationId,
+            userAgent: req.get("user-agent") ?? null
+        });
+        
+        setSessionCookie(res, token);
 
         res.cookie("token", token, {
             httpOnly: true,
@@ -730,17 +728,203 @@ app.post("/auth/login", loginRateLimiter, async function(req, res) {
     }
 });
 
-app.post("/auth/logout", function(req, res){
-    res.clearCookie("token",{
-        httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production",
-    });
-    return res.json({
-        message: "Logout successful",
-        
-    })
-})
+app.post(
+    "/auth/logout",
+    requireAuth,
+    async function(req, res) {
+        const sessionId = req.sessionId;
+
+        if (!sessionId) {
+            clearSessionCookie(res);
+
+            return res.status(401).json({
+                error: "Session not found"
+            });
+        }
+
+        try {
+            await prisma.session.updateMany({
+                where: {
+                    id: sessionId,
+                    revokedAt: null
+                },
+                data: {
+                    revokedAt: new Date()
+                }
+            });
+
+            clearSessionCookie(res);
+
+            return res.json({
+                message: "Logout successful"
+            });
+        } catch (error) {
+            console.error("Logout failed:", error);
+
+            return res.status(500).json({
+                error: "Could not sign out"
+            });
+        }
+    }
+);
+
+app.post(
+    "/auth/logout-all",
+    requireAuth,
+    async function(req, res) {
+        const userId = req.userId;
+
+        if (userId === undefined) {
+            return res.status(401).json({
+                error: "Authentication required"
+            });
+        }
+
+        try {
+            await prisma.session.updateMany({
+                where: {
+                    userId: userId,
+                    revokedAt: null
+                },
+                data: {
+                    revokedAt: new Date()
+                }
+            });
+
+            clearSessionCookie(res);
+
+            return res.json({
+                message: "Signed out from all devices"
+            });
+        } catch (error) {
+            console.error(
+                "Sign out from all devices failed:",
+                error
+            );
+
+            return res.status(500).json({
+                error:
+                    "Could not sign out from all devices"
+            });
+        }
+    }
+);
+
+app.get(
+    "/auth/sessions",
+    requireAuth,
+    async function(req, res) {
+        const userId = req.userId;
+        const currentSessionId = req.sessionId;
+
+        if (userId === undefined || currentSessionId === undefined) {
+            return res.status(401).json({
+                error: "Authentication required"
+            });
+        }
+
+        try {
+            const sessions = await prisma.session.findMany({
+                where: {
+                    userId,
+                    revokedAt: null,
+                    expiresAt: {
+                        gt: new Date()
+                    }
+                },
+                orderBy: {
+                    lastSeenAt: "desc"
+                },
+                select: {
+                    id: true,
+                    userAgent: true,
+                    createdAt: true,
+                    lastSeenAt: true,
+                    expiresAt: true
+                }
+            });
+
+            return res.json({
+                data: sessions.map(function(session) {
+                    return {
+                        ...session,
+                        isCurrent: session.id === currentSessionId
+                    };
+                })
+            });
+        } catch (error) {
+            console.error("Loading sessions failed:", error);
+
+            return res.status(500).json({
+                error: "Could not load active sessions"
+            });
+        }
+    }
+);
+
+app.delete(
+    "/auth/sessions/:sessionId",
+    requireAuth,
+    async function(req, res) {
+        const userId = req.userId;
+        const currentSessionId = req.sessionId;
+        const sessionId = req.params.sessionId;
+
+        if (userId === undefined || currentSessionId === undefined) {
+            return res.status(401).json({
+                error: "Authentication required"
+            });
+        }
+
+        if (!sessionId) {
+            return res.status(400).json({
+                error: "Session ID is required"
+            });
+        }
+
+        try {
+            const result = await prisma.session.updateMany({
+                where: {
+                    id: sessionId,
+                    userId,
+                    revokedAt: null,
+                    expiresAt: {
+                        gt: new Date()
+                    }
+                },
+                data: {
+                    revokedAt: new Date()
+                }
+            });
+
+            if (result.count === 0) {
+                return res.status(404).json({
+                    error: "Active session not found"
+                });
+            }
+
+            const signedOutCurrentDevice =
+                sessionId === currentSessionId;
+
+            if (signedOutCurrentDevice) {
+                clearSessionCookie(res);
+            }
+
+            return res.json({
+                message: signedOutCurrentDevice
+                    ? "Current device signed out"
+                    : "Device signed out",
+                signedOutCurrentDevice
+            });
+        } catch (error) {
+            console.error("Revoking session failed:", error);
+
+            return res.status(500).json({
+                error: "Could not sign out this device"
+            });
+        }
+    }
+);
 
 app.get("/auth/me", requireAuth, async function(req, res) {
     const userId = req.userId;
