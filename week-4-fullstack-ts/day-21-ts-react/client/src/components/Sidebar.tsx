@@ -12,15 +12,10 @@ import AuthContext from "../context/AuthContext";
 import {
   LayoutDashboard,
   Building2,
-  DoorOpen,
-  Users,
-  FileText,
   Wallet,
   Receipt,
   Wrench,
   BarChart3,
-  UserCog,
-  History,
   Settings,
   Archive,
   LogOut,
@@ -145,19 +140,8 @@ function Sidebar() {
           icon: <Building2 size={19} />
       },
       {
-          label: "Units",
-          path: null,
-          icon: <DoorOpen size={19} />
-      },
-      {
           label: "Tenants",
-          path: "/renters",
-          icon: <Users size={19} />
-      },
-      {
-          label: "Leases",
-          path: null,
-          icon: <FileText size={19} />
+          path: "/renters"
       },
       {
           label: "Rent Collection",
@@ -178,16 +162,6 @@ function Sidebar() {
           label: "Reports",
           path: "/arrears",
           icon: <BarChart3 size={19} />
-      },
-      {
-          label: "Users",
-          path: null,
-          icon: <UserCog size={19} />
-      },
-      {
-          label: "Activity Logs",
-          path: null,
-          icon: <History size={19} />
       },
       {
           label: "Settings",
