@@ -22,7 +22,7 @@ import Sidebar from "./components/Sidebar";
 
 function App() {
     const { pathname } = useLocation();
-    const isAuthPage = pathname === "/login" || pathname === "/register" || "/verify-email";
+    const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/verify-email";
     const auth = useContext(AuthContext);
 if (!auth) throw new Error("AuthProvider missing");
 const { user } = auth;
