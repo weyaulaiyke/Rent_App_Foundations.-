@@ -13,7 +13,7 @@ import {
   LayoutDashboard,
   Building2,
   Wallet,
-  Receipt,
+  Users,
   Wrench,
   BarChart3,
   Settings,
@@ -141,17 +141,13 @@ function Sidebar() {
       },
       {
           label: "Tenants",
-          path: "/renters"
+          path: "/renters",
+          icon: <Users size={17} />
       },
       {
           label: "Rent Collection",
           path: "/payments",
           icon: <Wallet size={19} />
-      },
-      {
-          label: "Deposits & Charges",
-          path: null,
-          icon: <Receipt size={19} />
       },
       {
           label: "Maintenance",
