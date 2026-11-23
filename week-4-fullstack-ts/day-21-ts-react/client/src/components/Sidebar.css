@@ -209,72 +209,84 @@
 }
 
 @media (max-width: 900px) {
-    .sidebar.collapsible-sidebar,
-    .sidebar.collapsible-sidebar.sidebar--collapsed {
-        position: static;
-        flex: 0 0 auto;
-        width: 100%;
-        height: auto;
-        padding: 14px 16px;
-        transition: none;
-    }
-    .sidebar.collapsible-sidebar .sidebar-brand,
-    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-brand {
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-        padding-bottom: 10px;
-    }
-    .sidebar.collapsible-sidebar nav {
-        flex: 0 0 auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        overflow: visible;
-    }
-    .sidebar.collapsible-sidebar nav a,
-    .sidebar.collapsible-sidebar nav .sidebar-pending {
-        width: auto;
-    }
-    .sidebar.collapsible-sidebar.sidebar--collapsed nav {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    .sidebar.collapsible-sidebar.sidebar--collapsed nav a,
-    .sidebar.collapsible-sidebar.sidebar--collapsed nav .sidebar-pending {
-        flex: 0 0 44px;
-        width: 44px;
-        height: 44px;
-    }
-    .sidebar.collapsible-sidebar .sidebar-footer {
-        margin-top: 12px;
-    }
-    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-footer {
+    .remote-mobile-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 12px;
+        min-height: 54px;
+        padding: 4px 14px;
+        background: #153f38;
+        color: #fff;
+        font-weight: 700;
     }
-    .sidebar.collapsible-sidebar.sidebar--collapsed .sidebar-account {
-        margin-bottom: 0;
-    }
-    .sidebar.collapsible-sidebar.sidebar--collapsed .logout-button {
-        flex: 0 0 44px;
+    .remote-mobile-bar button {
+        display: grid;
+        place-items: center;
         width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+    }
+    .remote-mobile-bar button:focus-visible {
+        outline: 2px solid #c7a869;
+    }
+    dialog.remote-nav-drawer {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(19rem, 86vw);
+        max-width: none;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        overflow: hidden;
+        background: #153f38;
+    }
+    .remote-nav-drawer::backdrop {
+        background: rgb(0 0 0 / 48%);
+    }
+    html:has(.remote-nav-drawer[open]),
+    body:has(.remote-nav-drawer[open]) {
+        overflow: hidden;
+    }
+    .remote-nav-drawer .sidebar.collapsible-sidebar {
+        position: static;
+        width: 100%;
+        height: 100%;
+        padding-bottom: max(14px, env(safe-area-inset-bottom));
+    }
+    .remote-nav-drawer .sidebar.collapsible-sidebar nav {
+        display: flex;
+        flex-flow: column nowrap;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .remote-nav-drawer .sidebar-toggle {
+        min-width: 44px;
+        min-height: 44px;
     }
 }
 
-@media (max-width: 650px) {
-    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
+    .remote-nav-drawer[open] {
+        animation: remote-drawer-in 200ms ease-out;
     }
-    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav a,
-    .sidebar.collapsible-sidebar:not(.sidebar--collapsed) nav .sidebar-pending {
-        width: 100%;
-        min-width: 0;
-        font-size: 12px;
+    @keyframes remote-drawer-in {
+        from {
+            transform: translateX(-100%);
+        }
+        to {
+            transform: translateX(0);
+        }
     }
 }
 
