@@ -16,7 +16,7 @@ import {
 } from "./sessions";
 require("dotenv").config();
 import PDFDocument = require("pdfkit");
-import { buffer as readPdfBuffer } from "node:stream/consumers";
+
 
 declare global {
     namespace Express {
@@ -2398,9 +2398,19 @@ app.get(
             pdf.font("Helvetica-Bold").text(
                 `Amount received: UGX ${payment.amount.toLocaleString("en-UG")}`
             );
-            pdf.end();
+           
+            const file = await new Promise<Buffer>((resolve, reject) => {
+                const chunks: Buffer[] = [];
+            
+                pdf.on("data", (chunk: Buffer) => {
+                    chunks.push(chunk);
+                });
+                pdf.once("error", reject);
+                pdf.once("end", () => resolve(Buffer.concat(chunks)));
+            
+                pdf.end();
+            });
 
-            const file = await readPdfBuffer(pdf);
             res.set("Cache-Control", "private, no-store");
             res.attachment(`rent-receipt-${receiptNumber}.pdf`);
             return res.send(file);

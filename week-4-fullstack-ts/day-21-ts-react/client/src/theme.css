@@ -492,3 +492,50 @@ form button[type="submit"]:hover,
 :root[data-theme="dark"] .remote-auth-page {
     background: var(--app-bg);
 }
+
+.remote-startup {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 16px;
+    background: var(--app-bg);
+    color: var(--app-text);
+    font: 600 1rem system-ui, sans-serif;
+}
+
+.remote-startup-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--app-surface);
+    color: var(--app-accent);
+    font-size: 32px;
+    font-weight: 900;
+}
+
+.remote-startup-mark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 3px solid var(--app-border);
+    border-top-color: var(--app-brand);
+    border-radius: 50%;
+    animation: remote-startup-spin 0.9s linear infinite;
+}
+
+@keyframes remote-startup-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .remote-startup-mark::after {
+        animation: none;
+    }
+}

@@ -21,7 +21,12 @@ function ProtectedRoute({
     const { user, loading } = auth;
 
     if (loading) {
-        return null;
+        return (
+        <div className="remote-startup" role="status">
+            <span className="remote-startup-mark" aria-hidden="true">R</span>
+            <span>Opening REMOTE...</span>
+        </div> 
+        );
     }
 
     if (!user) {
