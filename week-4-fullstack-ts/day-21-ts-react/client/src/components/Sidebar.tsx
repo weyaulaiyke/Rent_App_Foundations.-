@@ -43,6 +43,31 @@ import {
   function isMobileViewport() {
     return mobileViewport.matches;
   }
+
+  function closeMobileDrawer(dialog: HTMLDialogElement | null) {
+    if (!dialog?.open || dialog.dataset.closing === "true") return;
+
+    // Start from the visible position, even if the opening slide is still moving.
+    dialog.style.setProperty("--drawer-exit-from", getComputedStyle(dialog).transform);
+    dialog.dataset.closing = "true";
+
+    const exit = dialog.getAnimations().find(
+      animation => "animationName" in animation && animation.animationName === "remote-drawer-out"
+    );
+
+    function finish() {
+      if (!dialog) return;
+      if (dialog.open) dialog.close();
+      delete dialog.dataset.closing;
+      dialog.style.removeProperty("--drawer-exit-from");
+    }
+
+    if (exit) {
+      void exit.finished.then(finish, finish);
+    } else {
+      finish();
+    }
+  }
   
   function Sidebar() {
     const auth = useContext(AuthContext);
@@ -75,7 +100,7 @@ import {
     }, [desktopCollapsed]);
   
     useEffect(() => {
-        drawer.current?.close();
+        closeMobileDrawer(drawer.current);
         setTooltip(null);
     }, [location.key, isMobile]);
   
@@ -95,7 +120,7 @@ import {
     function toggleSidebar() {
         setTooltip(null);
         if (isMobile) {
-            drawer.current?.close();
+            closeMobileDrawer(drawer.current);
             return;
         }
         setCollapsed(function(current) {
@@ -251,7 +276,7 @@ import {
                 onClick={(event) => {
                     if (isMobile && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
                         !event.altKey && event.target instanceof Element && event.target.closest("a")) {
-                        drawer.current?.close();
+                        closeMobileDrawer(drawer.current);
                     }
                 }}
             >
@@ -390,8 +415,12 @@ import {
                 id="mobile-navigation"
                 className="remote-nav-drawer"
                 aria-label="Navigation menu"
+                onCancel={(event) => {
+                    event.preventDefault();
+                    closeMobileDrawer(event.currentTarget);
+                }}
                 onClick={(event) => {
-                    if (event.target === event.currentTarget) drawer.current?.close();
+                    if (event.target === event.currentTarget) closeMobileDrawer(event.currentTarget);
                 }}
             >
                 {panel}

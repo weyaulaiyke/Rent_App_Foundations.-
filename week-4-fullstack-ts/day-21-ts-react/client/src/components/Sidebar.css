@@ -278,7 +278,17 @@
 
 @media (max-width: 900px) and (prefers-reduced-motion: no-preference) {
     .remote-nav-drawer[open] {
-        animation: remote-drawer-in 200ms ease-out;
+        animation: remote-drawer-in 240ms ease-out;
+    }
+    .remote-nav-drawer[open][data-closing="true"] {
+        animation: remote-drawer-out 200ms ease-in both;
+    }
+    .remote-nav-drawer[open]::backdrop {
+        animation: remote-backdrop-in 240ms ease-out;
+        transition: background-color 200ms ease-in;
+    }
+    .remote-nav-drawer[data-closing="true"]::backdrop {
+        background-color: transparent;
     }
     @keyframes remote-drawer-in {
         from {
@@ -286,6 +296,22 @@
         }
         to {
             transform: translateX(0);
+        }
+    }
+    @keyframes remote-drawer-out {
+        from {
+            transform: var(--drawer-exit-from, translateX(0));
+        }
+        to {
+            transform: translateX(-100%);
+        }
+    }
+    @keyframes remote-backdrop-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
         }
     }
 }
