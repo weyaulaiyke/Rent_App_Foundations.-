@@ -1,3 +1,4 @@
+import PageLoader from "../components/PageLoader";
 import useFetch from "../hooks/useFetch";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -38,7 +39,7 @@ function ArchivedRentersPage() {
     }
 
     if (loading) {
-        return <p>Loading archived renters...</p>;
+        return <PageLoader label="Loading payments..."/>;
     }
 
     if (error) {

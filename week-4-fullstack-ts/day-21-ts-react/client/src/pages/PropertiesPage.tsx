@@ -2,6 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import useFetch from "../hooks/useFetch";
+import PageLoader from "../components/PageLoader";
 
 type Property = {
     id: number;
@@ -89,7 +90,7 @@ function PropertiesPage() {
     }
 
     if (loading) {
-        return <p>Loading properties...</p>;
+        return <PageLoader label="Loading properties..."/>;
     }
 
     if (error) {

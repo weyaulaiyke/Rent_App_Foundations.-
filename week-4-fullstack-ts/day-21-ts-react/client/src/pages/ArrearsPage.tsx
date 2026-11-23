@@ -1,4 +1,5 @@
 import useFetch from "../hooks/useFetch";
+import PageLoader from "../components/PageLoader";
 
 type ArrearsItem = {
     renter: string;
@@ -18,7 +19,7 @@ function ArrearsPage() {
     console.log("Arrears data:", arrears);
 
     if (loading) {
-        return <p>Loading arrears...</p>;
+        return <PageLoader label="Loading arrears..."/>;
     }
 
     if (error) {

@@ -1,3 +1,4 @@
+import PageLoader from "../components/PageLoader";
 import SummaryCard from "../components/SummaryCard";
 import useFetch from "../hooks/useFetch";
 
@@ -92,7 +93,7 @@ function DashboardPage({
         paymentsLoading ||
         maintenanceLoading
     ) {
-        return <p>Loading dashboard...</p>;
+        return <PageLoader label={`Loadind${title}...`}/>;
     }
 
     if (

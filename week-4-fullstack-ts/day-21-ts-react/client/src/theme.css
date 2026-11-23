@@ -541,3 +541,9 @@ form button[type="submit"]:hover,
         animation: none;
     }
 }
+
+.remote-startup.remote-page-loader {
+    position: static;
+    min-height: 60vh;
+    min-height: 60svh;
+}

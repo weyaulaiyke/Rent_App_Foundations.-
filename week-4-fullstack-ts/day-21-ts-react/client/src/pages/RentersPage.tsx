@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import useFetch from "../hooks/useFetch";
+import PageLoader from "../components/PageLoader";
 
 type Renter = {
     id: number;
@@ -293,7 +294,7 @@ function RentersPage() {
         unitsLoading ||
         leasesLoading
     ) {
-        return <p>Loading renters...</p>;
+        return <PageLoader label="Loading tenants..."/>;
     }
 
     if (

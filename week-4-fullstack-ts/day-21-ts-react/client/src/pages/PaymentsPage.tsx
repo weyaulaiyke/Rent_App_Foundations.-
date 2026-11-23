@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import useFetch from "../hooks/useFetch";
+import PageLoader from "../components/PageLoader";
 
 type Renter = {
     id: number;
@@ -114,7 +115,7 @@ function PaymentsPage() {
     }
 
     if (rentersLoading || paymentsLoading) {
-        return <p>Loading payments...</p>;
+        return <PageLoader label="Loadind payments..."/>;
     }
 
     if (rentersError || paymentsError) {
