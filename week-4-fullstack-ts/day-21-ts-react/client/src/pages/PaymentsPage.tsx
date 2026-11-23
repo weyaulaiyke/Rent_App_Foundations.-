@@ -34,6 +34,41 @@ function PaymentsPage() {
         error: paymentsError
     } = useFetch<Payment[]>("/payments");
 
+    async function downloadReceipt(paymentId: number) {
+        setActionError("");
+    
+        try {
+            const response = await fetch(
+                `${API_URL}/payments/${paymentId}/receipt.pdf`,
+                { credentials: "include" }
+            );
+    
+            if (response.status === 401) {
+                throw new Error("Please sign in again to download your receipt.");
+            }
+    
+            if (!response.ok || !response.headers.get("content-type")?.includes("application/pdf")) {
+                throw new Error("Could not download this receipt.");
+            }
+    
+            const file = await response.blob();
+            const url = URL.createObjectURL(file);
+            const link = document.createElement("a");
+    
+            link.href = url;
+            link.download = `rent-receipt-R-${paymentId}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+    
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            setActionError(
+                error instanceof Error ? error.message : "Receipt download failed."
+            );
+        }
+    }
+
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -160,6 +195,7 @@ function PaymentsPage() {
                         <th>Renter</th>
                         <th>Amount</th>
                         <th>Date</th>
+                        <th>Receipt</th>
                     </tr>
                 </thead>
 
@@ -188,6 +224,11 @@ function PaymentsPage() {
 
                                 <td>
                                     {payment.paymentDate}
+                                </td>
+                                <td>
+                                <button type="button" onClick={() => void downloadReceipt(payment.id)}>
+                                    Download receipt
+                                </button>
                                 </td>
                             </tr>
                         );

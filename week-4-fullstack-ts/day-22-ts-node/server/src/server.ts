@@ -15,6 +15,8 @@ import {
     clearSessionCookie
 } from "./sessions";
 require("dotenv").config();
+import PDFDocument = require("pdfkit");
+import { buffer as readPdfBuffer } from "node:stream/consumers";
 
 declare global {
     namespace Express {
@@ -2331,6 +2333,80 @@ app.get(
             return res.status(500).json({
                 error: "Could not load payments"
             });
+        }
+    }
+);
+
+app.get(
+    "/payments/:id/receipt.pdf",
+    requireAuth,
+    requireOrganization,
+    requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
+    async function(req, res) {
+        const organizationId = req.organizationId;
+        if (organizationId === undefined) {
+            return res.status(403).json({ error: "Workspace access required" });
+        }
+
+        const id = z.coerce.number().int().positive().max(2147483647)
+            .safeParse(req.params.id);
+
+        if (!id.success) {
+            return res.status(400).json({ error: "Invalid payment ID" });
+        }
+
+        try {
+            const payment = await prisma.payment.findFirst({
+                where: {
+                    id: id.data,
+                    renter: { organizationId }
+                },
+                select: {
+                    id: true,
+                    amount: true,
+                    paymentDate: true,
+                    renter: {
+                        select: {
+                            name: true,
+                            organization: { select: { name: true } }
+                        }
+                    }
+                }
+            });
+
+            if (!payment) {
+                return res.status(404).json({ error: "Payment not found" });
+            }
+
+            const receiptNumber = `R-${payment.id}`;
+            const date = payment.paymentDate.toLocaleDateString("en-UG", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                timeZone: "Africa/Kampala"
+            });
+
+            const pdf = new PDFDocument({ size: "A4", margin: 50 });
+            pdf.font("Helvetica-Bold").fontSize(22).text("Rent payment receipt");
+            pdf.moveDown();
+            pdf.font("Helvetica").fontSize(12);
+            pdf.text(`Issued by: ${payment.renter.organization?.name ?? "REMOTE"}`);
+            pdf.text(`Receipt number: ${receiptNumber}`);
+            pdf.text(`Received from: ${payment.renter.name}`);
+            pdf.text(`Payment date: ${date}`);
+            pdf.moveDown();
+            pdf.font("Helvetica-Bold").text(
+                `Amount received: UGX ${payment.amount.toLocaleString("en-UG")}`
+            );
+            pdf.end();
+
+            const file = await readPdfBuffer(pdf);
+            res.set("Cache-Control", "private, no-store");
+            res.attachment(`rent-receipt-${receiptNumber}.pdf`);
+            return res.send(file);
+        } catch (error) {
+            console.error("Receipt download failed:", error);
+            return res.status(500).json({ error: "Could not generate receipt" });
         }
     }
 );

@@ -21,6 +21,7 @@
         "express-rate-limit": "^8.7.4",
         "jsonwebtoken": "^9.0.3",
         "nodemailer": "^10.6.0",
+        "pdfkit": "^0.21.0",
         "prisma": "^5.22.0",
         "zod": "^4.6.7"
     },
@@ -28,6 +29,7 @@
         "@types/express": "^5.0.6",
         "@types/node": "^26.6.6",
         "@types/nodemailer": "^8.0.2",
+        "@types/pdfkit": "^0.17.7",
         "tsx": "^4.23.15",
         "typescript": "^7.0.2"
     }
