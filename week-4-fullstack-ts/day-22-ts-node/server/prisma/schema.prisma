@@ -47,6 +47,8 @@ model Property {
   user         User          @relation(fields: [userId], references: [id])
   organization Organization? @relation(fields: [organizationId], references: [id])
   units        Unit[]
+  payoutAccount PropertyPayoutAccount?
+  rentCollections RentCollection[]
 
   @@index([organizationId])
 }
@@ -72,6 +74,7 @@ model Renter {
   organization Organization? @relation(fields: [organizationId], references: [id])
   leases       Lease[]
   payments     Payment[]
+  rentCollections RentCollection[]
 
   @@index([organizationId])
 }
@@ -84,6 +87,7 @@ model Lease {
 
   renter Renter @relation(fields: [renterId], references: [id])
   unit   Unit   @relation(fields: [unitId], references: [id])
+  collections RentCollection[]
 }
 
 model Payment {
@@ -91,6 +95,7 @@ model Payment {
   renterId    Int
   amount      Int
   paymentDate DateTime
+  payout RentPayout?
 
   renter Renter @relation(fields: [renterId], references: [id])
 }
@@ -116,6 +121,8 @@ model Organization {
   properties Property[]
   renters    Renter[]
   Session    Session[]
+  payoutAccounts  PropertyPayoutAccount[]
+  rentCollections RentCollection[]
 }
 
 enum OrganizationRole {
@@ -159,4 +166,64 @@ model Session {
   @@index([userId])
   @@index([organizationId])
   @@index([expiresAt])
+}
+
+enum RentPayoutStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+model PropertyPayoutAccount {
+  propertyId     Int    @id
+  organizationId Int
+  provider       String
+  beneficiaryRef String
+
+  property     Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId])
+}
+
+model RentCollection {
+  reference      String   @id @default(uuid())
+  leaseId        Int
+  renterId       Int
+  propertyId     Int
+  organizationId Int
+  provider       String
+  beneficiaryRef String
+  grossUgx       Int
+  feeUgx         Int
+  deductionUgx   Int
+  createdAt      DateTime @default(now())
+
+  lease        Lease        @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+  renter       Renter       @relation(fields: [renterId], references: [id], onDelete: Restrict)
+  property     Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payout       RentPayout?
+
+  @@index([leaseId])
+  @@index([renterId])
+  @@index([propertyId])
+  @@index([organizationId])
+}
+
+model RentPayout {
+  collectionRef String           @id
+  provider      String
+  transactionId String
+  paymentId     Int              @unique
+  netUgx        Int
+  status        RentPayoutStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  completedAt   DateTime?
+
+  collection RentCollection @relation(fields: [collectionRef], references: [reference], onDelete: Restrict)
+  payment    Payment        @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, transactionId])
+  @@index([status, createdAt])
 }
