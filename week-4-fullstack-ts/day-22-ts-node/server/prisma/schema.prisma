@@ -50,6 +50,7 @@ model Property {
   payoutAccount PropertyPayoutAccount?
   rentCollections RentCollection[]
 
+  @@unique([id, organizationId])
   @@index([organizationId])
 }
 
@@ -88,6 +89,7 @@ model Lease {
   renter Renter @relation(fields: [renterId], references: [id])
   unit   Unit   @relation(fields: [unitId], references: [id])
   collections RentCollection[]
+  @@unique([id, renterId])
 }
 
 model Payment {
@@ -180,15 +182,17 @@ model PropertyPayoutAccount {
   provider       String
   beneficiaryRef String
 
-  property     Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  property Property @relation(fields: [propertyId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Restrict)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([organizationId])
+  @@unique([propertyId, organizationId])
 }
 
 model RentCollection {
   reference      String   @id @default(uuid())
   leaseId        Int
+  unitId         Int
   renterId       Int
   propertyId     Int
   organizationId Int
@@ -199,7 +203,7 @@ model RentCollection {
   deductionUgx   Int
   createdAt      DateTime @default(now())
 
-  lease        Lease        @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+  lease Lease @relation(fields: [leaseId, renterId], references: [id, renterId], onDelete: Restrict, onUpdate: Restrict)
   renter       Renter       @relation(fields: [renterId], references: [id], onDelete: Restrict)
   property     Property     @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
