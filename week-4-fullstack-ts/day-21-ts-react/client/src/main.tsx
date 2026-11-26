@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import{ BrowserRouter } from "react-router-dom"
+import{ BrowserRouter,Route, Routes } from "react-router-dom"
+import RenterPaymentPage from "./pages/RenterPaymentPage";
 import { AuthProvider } from './context/AuthContext.jsx'
 import App from './App'
 import './index.css'
@@ -10,12 +11,20 @@ import "./theme.css";
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <BrowserRouter>
-    <AuthProvider>
+   <BrowserRouter>
     <ThemeProvider>
-      <App />
-      </ThemeProvider>
-      </AuthProvider>
-    </BrowserRouter>
+        <Routes>
+            <Route path="/pay/:token" element={<RenterPaymentPage />} />
+            <Route
+                path="/*"
+                element={
+                    <AuthProvider>
+                        <App />
+                    </AuthProvider>
+                }
+            />
+        </Routes>
+    </ThemeProvider>
+</BrowserRouter>
   </React.StrictMode>,
 );
