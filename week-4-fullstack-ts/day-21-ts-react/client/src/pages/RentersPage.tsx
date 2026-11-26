@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import useFetch from "../hooks/useFetch";
 import PageLoader from "../components/PageLoader";
+import { url } from "zod";
 
 type Renter = {
     id: number;
@@ -22,6 +23,72 @@ type Lease = {
 };
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+function LeasePaymentLink({ leaseId }: { leaseId: number }) {
+    const [url, setUrl] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState("");
+
+    async function getLink() {
+        setLoading(true);
+        setMessage("");
+
+        try {
+            const response = await fetch(
+                `${API_URL}/leases/${leaseId}/payment-link`,
+                { method: "POST", credentials: "include" }
+            );
+
+            if (!response.ok) {
+                throw new Error("Payment link request failed");
+            }
+
+            const { data } = await response.json();
+            if (typeof data?.path !== "string" || !/^\/pay\/[\w-]+$/.test(data.path)) {
+                throw new Error("Invalid payment link");
+            }
+
+            setUrl(new URL(data.path, window.location.origin).href);
+        } catch {
+            setMessage("Could not get the payment link. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function copyLink() {
+        try {
+            await navigator.clipboard.writeText(url);
+            setMessage("Link copied.");
+        } catch {
+            setMessage("Select the address and copy it manually.");
+        }
+    }
+
+    return (
+        <div>
+            {url ? (
+                <>
+                    <input
+                        aria-label="Tenant payment link"
+                        value={url}
+                        readOnly
+                        onFocus={(event) => event.currentTarget.select()}
+                    />
+                    <button type="button" onClick={copyLink}>
+                        Copy link
+                    </button>
+                </>
+            ) : (
+                <button type="button" onClick={getLink} disabled={loading}>
+                    {loading ? "Getting link…" : "Get payment link"}
+                </button>
+            )}
+            <span role="status">{message}</span>
+        </div>
+    );
+}
+
 
 function RentersPage() {
     const [name, setName] = useState("");
@@ -426,6 +493,9 @@ function RentersPage() {
                                     >
                                         Archive
                                     </button>
+
+                                    {renterLease && (
+                                    <LeasePaymentLink key={renterLease.id} leaseId={renterLease.id} />)}
                                 </td>
                             </tr>
                         );
