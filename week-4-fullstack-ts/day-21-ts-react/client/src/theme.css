@@ -547,3 +547,52 @@ form button[type="submit"]:hover,
     min-height: 60vh;
     min-height: 60svh;
 }
+
+.renters-table .renter-payment-row>td {
+    background: var(--app-surface-alt);
+    padding-block: 12px;
+}
+
+.renter-payment-row td>div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.renter-payment-row button {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--app-brand);
+    color: var(--app-on-brand);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.renter-payment-row button:hover:enabled {
+    background: var(--app-brand-hover);
+}
+
+.renter-payment-row button:focus-visible {
+    outline: 2px solid var(--app-focus);
+    outline-offset: 2px;
+}
+
+.renter-payment-row button:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.renter-payment-row input {
+    box-sizing: border-box;
+    width: min(100%, 28rem);
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--app-border);
+    border-radius: 8px;
+    background: var(--app-field-bg);
+    color: var(--app-text);
+}

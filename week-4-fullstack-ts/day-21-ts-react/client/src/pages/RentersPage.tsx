@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { Fragment, useState, type FormEvent } from "react";
 import useFetch from "../hooks/useFetch";
 import PageLoader from "../components/PageLoader";
 
@@ -462,42 +462,44 @@ function RentersPage() {
                                 }
                             );
 
-                        return (
-                            <tr key={renter.id}>
-                                <td>{renter.name}</td>
-
-                                <td>
-                                    {renterLease?.unit?.number ||
-                                        "-"}
-                                </td>
-
-                                <td>
-                                    {renterLease?.monthlyRent !=null
-                                    ?`UGX ${Number(renterLease.monthlyRent).toLocaleString("en-US")}`:"-"}
-                                </td>
-
-                                <td>
-                                    <button
-                                    className="btn-edit"
-                                        onClick={() =>
-                                            handleEdit(renter)}
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                    className="btn-delete"
-                                        onClick={() =>
-                                            handleDelete(renter.id)}
-                                    >
-                                        Archive
-                                    </button>
-
+                            return (
+                                <Fragment key={renter.id}>
+                                    <tr>
+                                        <td>{renter.name}</td>
+                                        <td>{renterLease?.unit?.number || "-"}</td>
+                                        <td>
+                                            {renterLease?.monthlyRent != null
+                                                ? `UGX ${renterLease.monthlyRent.toLocaleString("en-US")}`
+                                                : "-"}
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                className="btn-edit"
+                                                onClick={() => handleEdit(renter)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn-delete"
+                                                onClick={() => handleDelete(renter.id)}
+                                            >
+                                                Archive
+                                            </button>
+                                        </td>
+                                    </tr>
+                            
                                     {renterLease && (
-                                    <LeasePaymentLink key={renterLease.id} leaseId={renterLease.id} />)}
-                                </td>
-                            </tr>
-                        );
+                                        <tr className="renter-payment-row">
+                                            <td colSpan={4}>
+                                                <LeasePaymentLink key={renterLease.id} leaseId={renterLease.id} />
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
+                            );
+                        
                     })}
                 </tbody>
             </table>
