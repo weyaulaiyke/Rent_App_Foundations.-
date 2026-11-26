@@ -93,8 +93,17 @@ model Lease {
   renter Renter @relation(fields: [renterId], references: [id])
   unit   Unit   @relation(fields: [unitId], references: [id])
   collections RentCollection[]
+  paymentLink LeasePaymentLink?
 
   @@unique([id, renterId, unitId])
+}
+
+model LeasePaymentLink {
+  token     String   @id @default(uuid())
+  leaseId   Int      @unique
+  createdAt DateTime @default(now())
+
+  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Cascade)
 }
 
 model Payment {

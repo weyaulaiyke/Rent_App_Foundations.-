@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser")
 import PrismaPackage = require("@prisma/client")
 import { rateLimit } from "express-rate-limit";
 import prisma from "./prisma"
+import { getOrCreateLeasePaymentLink } from "./leasePaymentLinks";
 import {
     createLoginSession,
     setSessionCookie,
@@ -16,6 +17,7 @@ import {
 } from "./sessions";
 require("dotenv").config();
 import PDFDocument = require("pdfkit");
+
 
 
 declare global {
@@ -2141,6 +2143,40 @@ app.post(
             return res.status(500).json({
                 error: "Could not create lease"
             });
+        }
+    }
+);
+
+app.post(
+    "/leases/:id/payment-link",
+    requireAuth,
+    requireOrganization,
+    requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
+    async function (req, res) {
+        const organizationId = req.organizationId;
+        const leaseId = Number(req.params.id);
+
+        if (organizationId === undefined) {
+            return res.status(403).json({ error: "Workspace access required" });
+        }
+
+        if (!Number.isInteger(leaseId) || leaseId <= 0 || leaseId > 2147483647) {
+            return res.status(400).json({ error: "Invalid lease ID" });
+        }
+
+        try {
+            const link = await getOrCreateLeasePaymentLink(leaseId, organizationId);
+
+            if (!link) {
+                return res.status(404).json({ error: "Lease not found" });
+            }
+
+            return res.status(200).json({
+                data: { path: `/pay/${link.token}` }
+            });
+        } catch (error) {
+            console.error("Could not get lease payment link", error);
+            return res.status(500).json({ error: "Could not get payment link" });
         }
     }
 );
