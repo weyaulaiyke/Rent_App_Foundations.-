@@ -2065,52 +2065,39 @@ app.post(
     requireAuth,
     requireOrganization,
     requireOrganizationRoles("OWNER", "PROPERTY_MANAGER"),
-    async function(req, res) {
+    async function (req, res) {
         const organizationId = req.organizationId;
 
         if (organizationId === undefined) {
-            return res.status(403).json({
-                error: "Workspace access required"
-            });
+            return res.status(403).json({ error: "Workspace access required" });
         }
 
         const result = z.object({
-            renterId: z.coerce.number()
-                .int()
-                .positive()
-                .max(2147483647),
-            unitId: z.coerce.number()
-                .int()
-                .positive()
-                .max(2147483647),
-            monthlyRent: z.coerce.number()
-                .int()
-                .positive()
-                .max(2147483647)
+            renterId: z.coerce.number().int().positive().max(2147483647),
+            unitId: z.coerce.number().int().positive().max(2147483647),
+            monthlyRent: z.coerce.number().int().positive().max(2147483647),
+            firstRentDueOn: z.iso.date()
+                .transform(value => new Date(`${value}T00:00:00.000Z`))
+                .optional()
         }).safeParse(req.body);
 
         if (!result.success) {
             return res.status(400).json({
-                error: "A valid renter, unit and monthly rent are required"
+                error: "Enter a valid renter, unit and monthly rent. Use YYYY-MM-DD for the first rent due date."
             });
         }
+
+        const { renterId, unitId, monthlyRent, firstRentDueOn } = result.data;
 
         try {
             const [renter, unit] = await Promise.all([
                 prisma.renter.findFirst({
-                    where: {
-                        id: result.data.renterId,
-                        organizationId: organizationId,
-                        isArchived: false
-                    }
+                    where: { id: renterId, organizationId, isArchived: false },
+                    select: { id: true }
                 }),
                 prisma.unit.findFirst({
-                    where: {
-                        id: result.data.unitId,
-                        property: {
-                            organizationId: organizationId
-                        }
-                    }
+                    where: { id: unitId, property: { organizationId } },
+                    select: { id: true }
                 })
             ]);
 
@@ -2130,22 +2117,71 @@ app.post(
                 data: {
                     renterId: renter.id,
                     unitId: unit.id,
-                    monthlyRent: result.data.monthlyRent
+                    monthlyRent,
+                    firstRentDueOn: firstRentDueOn ?? null
                 }
             });
 
-            return res.status(201).json({
-                data: lease
-            });
+            return res.status(201).json({ data: lease });
         } catch (error) {
             console.error("Could not create lease:", error);
-
-            return res.status(500).json({
-                error: "Could not create lease"
-            });
+            return res.status(500).json({ error: "Could not create lease" });
         }
     }
 );
+
+app.get("/public/payment-links/:token", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+
+    const token = z.string().uuid().safeParse(req.params.token);
+    if (!token.success) {
+        return res.status(404).json({ error: "Payment link unavailable" });
+    }
+
+    try {
+        const link = await prisma.leasePaymentLink.findUnique({
+            where: { token: token.data },
+            select: {
+                lease: {
+                    select: {
+                        monthlyRent: true,
+                        renter: {
+                            select: { isArchived: true, organizationId: true }
+                        },
+                        unit: {
+                            select: {
+                                number: true,
+                                property: {
+                                    select: { name: true, organizationId: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const lease = link?.lease;
+        if (
+            !lease ||
+            lease.renter.isArchived ||
+            lease.renter.organizationId === null ||
+            lease.renter.organizationId !== lease.unit.property.organizationId
+        ) {
+            return res.status(404).json({ error: "Payment link unavailable" });
+        }
+
+        return res.json({
+            data: {
+                propertyName: lease.unit.property.name,
+                unitNumber: lease.unit.number,
+                monthlyRentUgx: lease.monthlyRent
+            }
+        });
+    } catch {
+        return res.status(500).json({ error: "Could not load payment details" });
+    }
+});
 
 app.post(
     "/leases/:id/payment-link",
@@ -2207,15 +2243,15 @@ app.patch(
         }
 
         const result = z.object({
-            monthlyRent: z.coerce.number()
-                .int()
-                .positive()
-                .max(2147483647)
+            monthlyRent: z.coerce.number().int().positive().max(2147483647),
+            firstRentDueOn: z.iso.date()
+                .transform(value => new Date(`${value}T00:00:00.000Z`))
+                .optional()
         }).safeParse(req.body);
-
+        
         if (!result.success) {
             return res.status(400).json({
-                error: "A valid monthly rent is required"
+                error: "Enter a valid monthly rent. Use YYYY-MM-DD for the first rent due date."
             });
         }
 
@@ -2233,7 +2269,10 @@ app.patch(
                     }
                 },
                 data: {
-                    monthlyRent: result.data.monthlyRent
+                    monthlyRent: result.data.monthlyRent,
+                    ...(result.data.firstRentDueOn !== undefined
+                        ? { firstRentDueOn: result.data.firstRentDueOn }
+                        : {})
                 }
             });
 

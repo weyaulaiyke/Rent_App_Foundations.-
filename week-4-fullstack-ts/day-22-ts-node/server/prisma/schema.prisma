@@ -92,10 +92,24 @@ model Lease {
 
   renter Renter @relation(fields: [renterId], references: [id])
   unit   Unit   @relation(fields: [unitId], references: [id])
+  firstRentDueOn DateTime?         @db.Date
+  billingPeriods LeaseRentPeriod[]
   collections RentCollection[]
   paymentLink LeasePaymentLink?
 
   @@unique([id, renterId, unitId])
+}
+
+model LeaseRentPeriod {
+  id            Int      @id @default(autoincrement())
+  leaseId       Int
+  billingMonth  DateTime @db.Date
+  dueOn         DateTime @db.Date
+  agreedRentUgx Int
+
+  lease Lease @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+
+  @@unique([leaseId, billingMonth])
 }
 
 model LeasePaymentLink {

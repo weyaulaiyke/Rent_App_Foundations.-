@@ -18,6 +18,7 @@ type Lease = {
     renterId: number;
     unitId: number;
     monthlyRent: number;
+    firstRentDueOn?: string | null;
     unit?: Unit | undefined;
 };
 
@@ -93,6 +94,7 @@ function RentersPage() {
     const [name, setName] = useState("");
     const [unit, setUnit] = useState("");
     const [monthlyRent, setMonthlyRent] = useState("");
+    const [firstRentDueOn, setFirstRentDueOn] = useState("");
     const [editingId, setEditingId] = useState<number | null>(null);
     const [actionError, setActionError] = useState("");
 
@@ -163,7 +165,8 @@ function RentersPage() {
                 const leaseData = {
                     renterId: editingId,
                     unitId: Number(unit),
-                    monthlyRent: Number(monthlyRent)
+                    monthlyRent: Number(monthlyRent),
+                    firstRentDueOn: firstRentDueOn || undefined
                 };
 
                 const selectedUnit = (units || []).find(
@@ -301,6 +304,7 @@ function RentersPage() {
             setName("");
             setUnit("");
             setMonthlyRent("");
+            setFirstRentDueOn("");
         } catch (error) {
             console.error(error);
             setActionError(error instanceof Error ? error.message : "Request failed");
@@ -315,6 +319,7 @@ function RentersPage() {
         );
 
         setName(renter.name);
+        setFirstRentDueOn(renterLease?.firstRentDueOn?.slice(0, 10) ?? "");
 
         if (renterLease) {
             setUnit(String(renterLease.unitId));
@@ -322,6 +327,7 @@ function RentersPage() {
         } else {
             setUnit("");
             setMonthlyRent("");
+            setFirstRentDueOn("");
         }
 
         setEditingId(renter.id);
@@ -425,6 +431,14 @@ function RentersPage() {
                         setMonthlyRent(event.target.value)
                     }
                     required
+                />
+
+                <label htmlFor="firstRentDueOn">First rent due date</label>
+                <input
+                    id="firstRentDueOn"
+                    type="date"
+                    value={firstRentDueOn}
+                    onChange={(event) => setFirstRentDueOn(event.target.value)}
                 />
 
                 <button type="submit">
