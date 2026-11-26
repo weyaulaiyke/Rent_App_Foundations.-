@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import useFetch from "../hooks/useFetch";
 import PageLoader from "../components/PageLoader";
-import { url } from "zod";
 
 type Renter = {
     id: number;
