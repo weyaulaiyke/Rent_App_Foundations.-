@@ -2266,56 +2266,90 @@ app.patch(
             });
         }
 
-        try {
-            const updateResult = await prisma.lease.updateMany({
-                where: {
-                    id: leaseId,
-                    renter: {
-                        organizationId: organizationId
-                    },
-                    unit: {
-                        property: {
-                            organizationId: organizationId
-                        }
-                    }
-                },
-                data: {
-                    monthlyRent: result.data.monthlyRent,
-                    ...(result.data.firstRentDueOn !== undefined
-                        ? { firstRentDueOn: result.data.firstRentDueOn }
-                        : {})
-                }
-            });
+        const billingDateConflict = new Error(
+            "This lease already has payment activity or later billing periods. Its first due date cannot be changed here."
+        );
 
-            if (updateResult.count === 0) {
-                return res.status(404).json({
-                    error: "Lease not found"
+        try {
+            const where = {
+                id: leaseId,
+                renter: { organizationId },
+                unit: { property: { organizationId } }
+            };
+
+            const { monthlyRent, firstRentDueOn } = result.data;
+
+            const updatedLease = await prisma.$transaction(async (tx) => {
+                const updateResult = await tx.lease.updateMany({
+                    where,
+                    data: {
+                        monthlyRent,
+                        ...(firstRentDueOn !== undefined ? { firstRentDueOn } : {})
+                    }
                 });
+
+                if (updateResult.count === 0) return null;
+
+                const lease = await tx.lease.findFirstOrThrow({ where });
+
+if (lease.firstRentDueOn) {
+    const existingPeriod = await tx.leaseRentPeriod.findFirst({
+        where: { leaseId: lease.id },
+        orderBy: { billingMonth: "asc" },
+        select: { id: true, dueOn: true }
+    });
+
+    if (!existingPeriod) {
+                    const dates = getLeaseBillingDates(lease.firstRentDueOn, 0);
+
+                    await tx.leaseRentPeriod.create({
+                        data: {
+                            leaseId: lease.id,
+                            billingMonth: dates.billingMonth,
+                            dueOn: dates.dueOn,
+                            agreedRentUgx: lease.monthlyRent
+                        }
+                    });
+                }
+
+                else if (
+                    firstRentDueOn &&
+                    existingPeriod.dueOn.getTime() !== firstRentDueOn.getTime()
+                ) {
+                    const canCorrectDate = await tx.lease.findFirst({
+                        where: {
+                            ...where,
+                            billingPeriods: { every: { id: existingPeriod.id } },
+                            collections: { none: {} },
+                            renter: { organizationId, payments: { none: {} } }
+                        },
+                        select: { id: true }
+                    });
+                
+                    if (!canCorrectDate) throw billingDateConflict;
+                
+                    await tx.leaseRentPeriod.update({
+                        where: { id: existingPeriod.id },
+                        data: getLeaseBillingDates(firstRentDueOn, 0)
+                    });
+                }
             }
 
-            const updatedLease = await prisma.lease.findFirst({
-                where: {
-                    id: leaseId,
-                    renter: {
-                        organizationId: organizationId
-                    },
-                    unit: {
-                        property: {
-                            organizationId: organizationId
-                        }
-                    }
-                }
-            });
+return lease;
 
-            return res.json({
-                data: updatedLease
-            });
+        });
+
+            if (!updatedLease) {
+                return res.status(404).json({ error: "Lease not found" });
+            }
+
+            return res.json({ data: updatedLease });
         } catch (error) {
+            if (error === billingDateConflict) {
+                return res.status(409).json({ error: billingDateConflict.message });
+            }
             console.error("Could not update lease:", error);
-
-            return res.status(500).json({
-                error: "Could not update lease"
-            });
+            return res.status(500).json({ error: "Could not update lease" });
         }
     }
 );
