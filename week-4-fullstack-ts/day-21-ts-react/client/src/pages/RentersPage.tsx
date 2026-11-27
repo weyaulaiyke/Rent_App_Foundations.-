@@ -455,6 +455,7 @@ function RentersPage() {
                         <th>Name</th>
                         <th>Unit</th>
                         <th>Monthly Rent</th>
+                        <th>First rent due date</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -487,6 +488,18 @@ function RentersPage() {
                                                 ? `UGX ${renterLease.monthlyRent.toLocaleString("en-US")}`
                                                 : "-"}
                                         </td>
+
+                                        <td>
+                                        {renterLease?.firstRentDueOn
+                                            ? new Date(renterLease.firstRentDueOn).toLocaleDateString("en-GB", {
+                                                day: "numeric",
+                                                month: "short",
+                                                year: "numeric",
+                                                timeZone: "UTC"
+                                            })
+                                            : "Not set"}
+                                    </td>
+
                                         <td>
                                             <button
                                                 type="button"
@@ -507,7 +520,7 @@ function RentersPage() {
                             
                                     {renterLease && (
                                         <tr className="renter-payment-row">
-                                            <td colSpan={4}>
+                                            <td colSpan={5}>
                                                 <LeasePaymentLink key={renterLease.id} leaseId={renterLease.id} />
                                             </td>
                                         </tr>
