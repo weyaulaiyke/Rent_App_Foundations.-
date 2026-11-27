@@ -268,10 +268,11 @@ function RentersPage() {
                         },
                         credentials: "include",
                         body: JSON.stringify({
-                            renterId: savedRenter.data.id,
-                            unitId: Number(unit),
-                            monthlyRent: Number(monthlyRent)
-                        })
+                        renterId: savedRenter.data.id,
+                        unitId: Number(unit),
+                        monthlyRent: Number(monthlyRent),
+                        firstRentDueOn: firstRentDueOn || undefined
+                    })
                     }
                 );
 
