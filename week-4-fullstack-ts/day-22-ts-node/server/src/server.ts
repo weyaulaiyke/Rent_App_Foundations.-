@@ -10,6 +10,7 @@ import PrismaPackage = require("@prisma/client")
 import { rateLimit } from "express-rate-limit";
 import prisma from "./prisma"
 import { getOrCreateLeasePaymentLink } from "./leasePaymentLinks";
+import { getLeaseBillingDates } from "./leaseBillingDates";
 import {
     createLoginSession,
     setSessionCookie,
@@ -2118,7 +2119,17 @@ app.post(
                     renterId: renter.id,
                     unitId: unit.id,
                     monthlyRent,
-                    firstRentDueOn: firstRentDueOn ?? null
+                    firstRentDueOn: result.data.firstRentDueOn?? null,
+                    ...(result.data.firstRentDueOn
+                        ? {
+                              billingPeriods: {
+                                  create: {
+                                      ...getLeaseBillingDates(result.data.firstRentDueOn, 0),
+                                      agreedRentUgx: result.data.monthlyRent,
+                                  },
+                              },
+                          }
+                : {}),
                 }
             });
 
