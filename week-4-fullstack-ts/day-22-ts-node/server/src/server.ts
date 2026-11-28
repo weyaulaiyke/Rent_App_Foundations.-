@@ -11,6 +11,8 @@ import { rateLimit } from "express-rate-limit";
 import prisma from "./prisma"
 import { getOrCreateLeasePaymentLink } from "./leasePaymentLinks";
 import { getLeaseBillingDates } from "./leaseBillingDates";
+import { loadLeaseRentPeriods } from "./loadLeaseRentPeriods";
+import { previewLeaseMonths } from "./previewLeaseMonths";
 import {
     createLoginSession,
     setSessionCookie,
@@ -2141,44 +2143,53 @@ app.post(
     }
 );
 
-app.get("/public/payment-links/:token", async (req, res) => {
-    res.set("Cache-Control", "no-store");
+async function findLeaseForPaymentLink(token: string) {
+    const parsed = z.string().uuid().safeParse(token);
+    if (!parsed.success) return null;
 
-    const token = z.string().uuid().safeParse(req.params.token);
-    if (!token.success) {
-        return res.status(404).json({ error: "Payment link unavailable" });
-    }
-
-    try {
-        const link = await prisma.leasePaymentLink.findUnique({
-            where: { token: token.data },
-            select: {
-                lease: {
-                    select: {
-                        monthlyRent: true,
-                        renter: {
-                            select: { isArchived: true, organizationId: true }
-                        },
-                        unit: {
-                            select: {
-                                number: true,
-                                property: {
-                                    select: { name: true, organizationId: true }
-                                }
+    const link = await prisma.leasePaymentLink.findUnique({
+        where: { token: parsed.data },
+        select: {
+            lease: {
+                select: {
+                    id: true,
+                    monthlyRent: true,
+                    firstRentDueOn: true,
+                    renter: {
+                        select: { isArchived: true, organizationId: true }
+                    },
+                    unit: {
+                        select: {
+                            number: true,
+                            property: {
+                                select: { name: true, organizationId: true }
                             }
                         }
                     }
                 }
             }
-        });
+        }
+    });
 
-        const lease = link?.lease;
-        if (
-            !lease ||
-            lease.renter.isArchived ||
-            lease.renter.organizationId === null ||
-            lease.renter.organizationId !== lease.unit.property.organizationId
-        ) {
+    const lease = link?.lease;
+    if (
+        !lease ||
+        lease.renter.isArchived ||
+        lease.renter.organizationId === null ||
+        lease.renter.organizationId !== lease.unit.property.organizationId
+    ) {
+        return null;
+    }
+
+    return lease;
+}
+
+app.get("/public/payment-links/:token", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+
+    try {
+        const lease = await findLeaseForPaymentLink(req.params.token);
+        if (!lease) {
             return res.status(404).json({ error: "Payment link unavailable" });
         }
 
@@ -2191,6 +2202,58 @@ app.get("/public/payment-links/:token", async (req, res) => {
         });
     } catch {
         return res.status(500).json({ error: "Could not load payment details" });
+    }
+});
+
+app.post("/public/payment-links/:token/preview", async (req, res) => {
+    res.set("Cache-Control", "no-store");
+
+    const input = z.object({
+        monthCount: z.number().int().min(1).max(120),
+        amountTodayUgx: z.number().int().positive().max(2147483647).optional()
+    }).safeParse(req.body);
+
+    if (!input.success) {
+        return res.status(400).json({
+            error: "Choose 1 to 120 whole months. If entering an amount, use positive whole UGX."
+        });
+    }
+
+    try {
+        const lease = await findLeaseForPaymentLink(req.params.token);
+        if (!lease) {
+            return res.status(404).json({ error: "Payment link unavailable" });
+        }
+
+        if (!lease.firstRentDueOn) {
+            return res.status(409).json({
+                error: "Your landlord needs to set the first rent due date."
+            });
+        }
+
+        const periods = await loadLeaseRentPeriods(prisma, lease.id);
+        const { monthCount, amountTodayUgx } = input.data;
+
+        const fullPreview = previewLeaseMonths(
+            lease.firstRentDueOn, lease.monthlyRent, periods, monthCount
+        );
+
+        if (amountTodayUgx === undefined) {
+            return res.json({ data: fullPreview });
+        }
+
+        if (amountTodayUgx > fullPreview.totalDueUgx) {
+            return res.status(400).json({
+                error: "The amount exceeds the balance for the selected months."
+            });
+        }
+
+        const preview = previewLeaseMonths(
+            lease.firstRentDueOn, lease.monthlyRent, periods, monthCount, amountTodayUgx
+        );
+        return res.json({ data: preview });
+    } catch {
+        return res.status(500).json({ error: "Could not calculate the rent preview." });
     }
 });
 

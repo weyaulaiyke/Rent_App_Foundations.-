@@ -106,10 +106,23 @@ model LeaseRentPeriod {
   billingMonth  DateTime @db.Date
   dueOn         DateTime @db.Date
   agreedRentUgx Int
+  allocations RentPaymentAllocation[]
 
   lease Lease @relation(fields: [leaseId], references: [id], onDelete: Restrict)
 
   @@unique([leaseId, billingMonth])
+}
+
+model RentPaymentAllocation {
+  paymentId    Int
+  rentPeriodId Int
+  amountUgx    Int
+
+  payment    Payment         @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  rentPeriod LeaseRentPeriod @relation(fields: [rentPeriodId], references: [id], onDelete: Restrict)
+
+  @@id([paymentId, rentPeriodId])
+  @@index([rentPeriodId])
 }
 
 model LeasePaymentLink {
@@ -126,6 +139,7 @@ model Payment {
   amount      Int
   paymentDate DateTime
   payout RentPayout?
+  allocations RentPaymentAllocation[]
 
   renter Renter @relation(fields: [renterId], references: [id])
 }
